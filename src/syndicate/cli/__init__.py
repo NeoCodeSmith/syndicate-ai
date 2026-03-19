@@ -1,0 +1,1 @@
+"""SYNDICATE AI — cli module."""

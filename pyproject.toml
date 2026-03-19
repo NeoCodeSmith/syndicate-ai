@@ -1,3 +1,6 @@
+[project.scripts]
+syndicate = "syndicate.cli.main:main"
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.backends.legacy:build"

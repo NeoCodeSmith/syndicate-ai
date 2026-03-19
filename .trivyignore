@@ -1,0 +1,12 @@
+# SYNDICATE AI — Trivy CVE Ignore List
+# Format: CVE-XXXX-XXXXX  # reason
+#
+# This file documents accepted risks. Every entry requires a justification.
+# Review quarterly and remove entries when patches become available.
+#
+# Policy: Only suppress CVEs that are:
+#   1. Unfixable (no upstream patch exists), OR
+#   2. Not exploitable in our runtime context (no attack surface)
+#
+# Entries added here must be reviewed and approved before merging.
+# Do NOT add entries to silence CI without understanding the CVE.

@@ -19,7 +19,7 @@ from typing import Any
 import jsonschema
 from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security.api_key import APIKeyHeader
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -240,6 +240,33 @@ async def get_agent(
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
     return agent.model_dump()
+
+
+# ── SSE Streaming ────────────────────────────────────────────────────────────
+
+
+@app.get("/api/v1/executions/{execution_id}/stream")
+@limiter.limit("30/minute")
+async def stream_execution(
+    request: Request,
+    execution_id: str,
+    _: str = Depends(verify_api_key),
+) -> StreamingResponse:
+    """
+    Stream real-time execution events via Server-Sent Events.
+
+    Events are emitted at each DAG state transition (step dispatched,
+    active, completed, failed, retrying, escalated) and at workflow
+    completion/abort. A heartbeat event is sent every 15s.
+
+    Connect with EventSource (browser) or httpx streaming (Python SDK).
+    """
+    from syndicate.app import get_settings
+    from syndicate.streaming.sse import create_sse_response
+
+    execution_id = _sanitise_id(execution_id, "execution_id")
+    settings = get_settings()
+    return create_sse_response(execution_id, settings.redis_url, request)
 
 
 # ── Global error handler — never leak internal details ────────────────────────
