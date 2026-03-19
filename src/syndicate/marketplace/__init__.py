@@ -1,0 +1,1 @@
+"""SYNDICATE AI — marketplace module."""

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SYNDICATE AI — Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #070b11;
+      --bg-secondary: #0d1520;
+      --bg-card: #0f1c2e;
+      --bg-hover: #162030;
+      --border: #1a2d45;
+      --border-bright: #1e3a5c;
+      --accent-blue: #2d8aff;
+      --accent-cyan: #00d4ff;
+      --accent-green: #3dba7a;
+      --accent-red: #ff4444;
+      --accent-amber: #f0a040;
+      --accent-purple: #9a6aff;
+      --text-primary: #e8f0fc;
+      --text-secondary: #6a8aaa;
+      --text-muted: #3a5570;
+      --font-mono: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      min-height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+    input, button, select {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      outline: none;
+    }
+    button { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ── Config ──────────────────────────────────────────────────────────
+    const API_BASE = window.location.origin.includes('3000')
+      ? 'http://localhost:8000'
+      : window.location.origin;
+
+    // ── API client ───────────────────────────────────────────────────────
+    const api = {
+      async request(path, opts = {}) {
+        const key = localStorage.getItem('syndicate_api_key') || '';
+        const res = await fetch(`${API_BASE}${path}`, {
+          headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
+          ...opts,
+        });
+        if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+        return res.json();
+      },
+      health: () => api.request('/health'),
+      listAgents: (div) => api.request(`/api/v1/agents${div ? `?division=${div}` : ''}`),
+      getAgent: (id) => api.request(`/api/v1/agents/${id}`),
+      execute: (wfId, ctx) => api.request(`/api/v1/workflows/${wfId}/execute`, {
+        method: 'POST', body: JSON.stringify({ context: ctx || {} })
+      }),
+      getExecution: (id) => api.request(`/api/v1/executions/${id}`),
+    };
+
+    // ── Status badge ─────────────────────────────────────────────────────
+    const StatusBadge = ({ status }) => {
+      const cfg = {
+        COMPLETED: { bg: '#0d2a1a', border: '#3dba7a', text: '#3dba7a', dot: '#3dba7a' },
+        ACTIVE:    { bg: '#0a1e35', border: '#2d8aff', text: '#2d8aff', dot: '#2d8aff' },
+        PENDING:   { bg: '#1a1a0a', border: '#f0a040', text: '#f0a040', dot: '#f0a040' },
+        FAILED:    { bg: '#2a0a0a', border: '#ff4444', text: '#ff4444', dot: '#ff4444' },
+        ABORTED:   { bg: '#1a0a2a', border: '#9a6aff', text: '#9a6aff', dot: '#9a6aff' },
+        RETRYING:  { bg: '#1a1a0a', border: '#f0a040', text: '#f0a040', dot: '#f0a040' },
+      }[status] || { bg: '#1a1a1a', border: '#555', text: '#888', dot: '#888' };
+      return (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          padding: '2px 8px', borderRadius: 4,
+          background: cfg.bg, border: `1px solid ${cfg.border}`,
+          color: cfg.text, fontSize: 11, fontWeight: 600, letterSpacing: '0.05em',
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', background: cfg.dot,
+            animation: status === 'ACTIVE' ? 'pulse 1.5s infinite' : 'none',
+          }}/>
+          {status}
+        </span>
+      );
+    };
+
+    // ── Sidebar ───────────────────────────────────────────────────────────
+    const NAVITEMS = [
+      { id: 'overview', icon: '⬡', label: 'Overview' },
+      { id: 'executions', icon: '⚡', label: 'Executions' },
+      { id: 'agents', icon: '◈', label: 'Agents' },
+      { id: 'workflows', icon: '⋈', label: 'Workflows' },
+      { id: 'marketplace', icon: '⊕', label: 'Marketplace' },
+      { id: 'replay', icon: '↺', label: 'Replay & Debug' },
+      { id: 'settings', icon: '⚙', label: 'Settings' },
+    ];
+
+    const Sidebar = ({ page, setPage }) => (
+      <div style={{
+        width: 200, background: var(--bg-secondary),
+        borderRight: `1px solid ${var(--border)}`,
+        display: 'flex', flexDirection: 'column', height: '100vh',
+        position: 'fixed', left: 0, top: 0, zIndex: 100,
+      }}>
+        {/* Logo */}
+        <div style={{ padding: '20px 16px 16px', borderBottom: `1px solid ${var(--border)}` }}>
+          <div style={{ color: var(--accent-cyan), fontSize: 11, letterSpacing: '0.2em', marginBottom: 4 }}>
+            SYNDICATE
+          </div>
+          <div style={{ color: var(--text-primary), fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>
+            AI
+          </div>
+          <div style={{ color: var(--text-muted), fontSize: 9, letterSpacing: '0.1em', marginTop: 2 }}>
+            ORCHESTRATION PLATFORM
+          </div>
+        </div>
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto' }}>
+          {NAVITEMS.map(item => (
+            <button key={item.id} onClick={() => setPage(item.id)} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              width: '100%', padding: '8px 12px', borderRadius: 6,
+              background: page === item.id ? 'rgba(45,138,255,0.12)' : 'transparent',
+              border: page === item.id ? '1px solid rgba(45,138,255,0.3)' : '1px solid transparent',
+              color: page === item.id ? var(--accent-blue) : var(--text-secondary),
+              marginBottom: 2, textAlign: 'left', transition: 'all 0.15s',
+            }}>
+              <span style={{ fontSize: 14 }}>{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        {/* Footer */}
+        <div style={{ padding: '12px 16px', borderTop: `1px solid ${var(--border)}` }}>
+          <div style={{ color: var(--text-muted), fontSize: 10 }}>v1.0.0 • MIT License</div>
+        </div>
+      </div>
+    );
+
+    // ── Top bar ───────────────────────────────────────────────────────────
+    const TopBar = ({ title, health }) => (
+      <div style={{
+        height: 50, background: var(--bg-secondary),
+        borderBottom: `1px solid ${var(--border)}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 24px', position: 'fixed', top: 0, left: 200, right: 0, zIndex: 90,
+      }}>
+        <span style={{ color: var(--text-primary), fontWeight: 600, letterSpacing: '0.05em' }}>
+          {title}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: health ? var(--accent-green) : var(--accent-red),
+              boxShadow: health ? '0 0 6px #3dba7a' : 'none',
+            }}/>
+            <span style={{ color: var(--text-secondary), fontSize: 11 }}>
+              {health ? 'API Online' : 'API Offline'}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+
+    // ── Stat card ─────────────────────────────────────────────────────────
+    const StatCard = ({ label, value, sub, color = var(--accent-blue) }) => (
+      <div style={{
+        background: var(--bg-card), border: `1px solid ${var(--border)}`,
+        borderRadius: 8, padding: '16px 20px',
+        borderLeft: `3px solid ${color}`,
+      }}>
+        <div style={{ color: var(--text-muted), fontSize: 10, letterSpacing: '0.1em', marginBottom: 8 }}>
+          {label}
+        </div>
+        <div style={{ color: var(--text-primary), fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>
+          {value}
+        </div>
+        {sub && <div style={{ color: var(--text-secondary), fontSize: 11, marginTop: 6 }}>{sub}</div>}
+      </div>
+    );
+
+    // ── Overview page ─────────────────────────────────────────────────────
+    const OverviewPage = ({ agents, executions }) => {
+      const byDivision = {};
+      agents.forEach(a => { byDivision[a.division] = (byDivision[a.division] || 0) + 1; });
+      const completed = executions.filter(e => e.status === 'COMPLETED').length;
+      const active = executions.filter(e => e.status === 'ACTIVE').length;
+
+      return (
+        <div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+            <StatCard label="TOTAL AGENTS" value={agents.length} sub="across 12 divisions" color={var(--accent-cyan)} />
+            <StatCard label="EXECUTIONS" value={executions.length} sub="all time" color={var(--accent-blue)} />
+            <StatCard label="COMPLETED" value={completed} sub={`${active} active`} color={var(--accent-green)} />
+            <StatCard label="WORKFLOWS" value="3" sub="startup-mvp, marketing, enterprise" color={var(--accent-purple)} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {/* Division breakdown */}
+            <div style={{ background: var(--bg-card), border: `1px solid ${var(--border)}`, borderRadius: 8, padding: 20 }}>
+              <div style={{ color: var(--text-secondary), fontSize: 10, letterSpacing: '0.1em', marginBottom: 16 }}>
+                AGENTS BY DIVISION
+              </div>
+              {Object.entries(byDivision).sort(([,a],[,b]) => b-a).map(([div, count]) => (
+                <div key={div} style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ color: var(--text-primary), textTransform: 'uppercase', fontSize: 11 }}>{div}</span>
+                    <span style={{ color: var(--accent-blue) }}>{count}</span>
+                  </div>
+                  <div style={{ background: var(--bg-secondary), borderRadius: 2, height: 3, overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', borderRadius: 2,
+                      background: `linear-gradient(90deg, ${var(--accent-blue)}, ${var(--accent-cyan)})`,
+                      width: `${(count / agents.length) * 100}%`,
+                      transition: 'width 0.8s ease',
+                    }}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Recent executions */}
+            <div style={{ background: var(--bg-card), border: `1px solid ${var(--border)}`, borderRadius: 8, padding: 20 }}>
+              <div style={{ color: var(--text-secondary), fontSize: 10, letterSpacing: '0.1em', marginBottom: 16 }}>
+                RECENT EXECUTIONS
+              </div>
+              {executions.length === 0 ? (
+                <div style={{ color: var(--text-muted), fontSize: 12, textAlign: 'center', padding: '20px 0' }}>
+                  No executions yet.<br/>
+                  <span style={{ color: var(--text-secondary) }}>Run a workflow to see activity.</span>
+                </div>
+              ) : executions.slice(0, 6).map(ex => (
+                <div key={ex.execution_id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 0', borderBottom: `1px solid ${var(--border)}`,
+                }}>
+                  <div>
+                    <div style={{ color: var(--text-primary), fontSize: 12 }}>{ex.workflow_name}</div>
+                    <div style={{ color: var(--text-muted), fontSize: 10, marginTop: 2 }}>
+                      {ex.execution_id.slice(0, 12)}...
+                    </div>
+                  </div>
+                  <StatusBadge status={ex.status} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ── Agents page ───────────────────────────────────────────────────────
+    const AgentsPage = ({ agents }) => {
+      const [search, setSearch] = useState('');
+      const [divFilter, setDivFilter] = useState('');
+      const [selected, setSelected] = useState(null);
+      const divisions = [...new Set(agents.map(a => a.division))].sort();
+
+      const filtered = agents.filter(a => {
+        const q = search.toLowerCase();
+        return (!q || a.name.toLowerCase().includes(q) || a.id.toLowerCase().includes(q) ||
+          a.capabilities?.some(c => c.includes(q))) &&
+          (!divFilter || a.division === divFilter);
+      });
+
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 20 }}>
+          <div>
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search agents..." style={{
+                  flex: 1, padding: '8px 12px', background: var(--bg-card),
+                  border: `1px solid ${var(--border)}`, borderRadius: 6, color: var(--text-primary),
+                }}/>
+              <select value={divFilter} onChange={e => setDivFilter(e.target.value)} style={{
+                padding: '8px 12px', background: var(--bg-card),
+                border: `1px solid ${var(--border)}`, borderRadius: 6, color: var(--text-primary),
+              }}>
+                <option value="">All Divisions</option>
+                {divisions.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
+            <div style={{ color: var(--text-muted), fontSize: 11, marginBottom: 12 }}>
+              {filtered.length} of {agents.length} agents
+            </div>
+
+            {/* Agent grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+              {filtered.map(agent => (
+                <div key={agent.id} onClick={() => setSelected(selected?.id === agent.id ? null : agent)}
+                  style={{
+                    background: selected?.id === agent.id ? var(--bg-hover) : var(--bg-card),
+                    border: `1px solid ${selected?.id === agent.id ? var(--accent-blue) : var(--border)}`,
+                    borderRadius: 8, padding: '14px 16px', cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <div>
+                      <div style={{ color: var(--text-primary), fontWeight: 600, marginBottom: 2 }}>
+                        {agent.name}
+                      </div>
+                      <div style={{ color: var(--text-muted), fontSize: 10 }}>{agent.id}</div>
+                    </div>
+                    <span style={{
+                      padding: '2px 6px', borderRadius: 3, fontSize: 9,
+                      background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.2)',
+                      color: var(--accent-cyan), letterSpacing: '0.05em',
+                    }}>{agent.division?.toUpperCase()}</span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {(agent.capabilities || []).slice(0, 3).map(c => (
+                      <span key={c} style={{
+                        padding: '1px 5px', borderRadius: 3, fontSize: 9,
+                        background: var(--bg-secondary), border: `1px solid ${var(--border)}`,
+                        color: var(--text-secondary),
+                      }}>{c}</span>
+                    ))}
+                    {(agent.capabilities || []).length > 3 && (
+                      <span style={{ color: var(--text-muted), fontSize: 9 }}>
+                        +{agent.capabilities.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Agent detail panel */}
+          {selected && (
+            <div style={{
+              background: var(--bg-card), border: `1px solid ${var(--border)}`,
+              borderRadius: 8, padding: 20, height: 'fit-content',
+              position: 'sticky', top: 70,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <div style={{ color: var(--text-primary), fontWeight: 700, fontSize: 15 }}>{selected.name}</div>
+                  <div style={{ color: var(--text-muted), fontSize: 10, marginTop: 2 }}>v{selected.version}</div>
+                </div>
+                <button onClick={() => setSelected(null)} style={{
+                  background: 'transparent', border: 'none', color: var(--text-muted), fontSize: 16,
+                }}>×</button>
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ color: var(--text-muted), fontSize: 10, letterSpacing: '0.1em', marginBottom: 8 }}>CAPABILITIES</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  {(selected.capabilities || []).map(c => (
+                    <span key={c} style={{
+                      padding: '2px 6px', borderRadius: 3, fontSize: 10,
+                      background: 'rgba(45,138,255,0.1)', border: '1px solid rgba(45,138,255,0.2)',
+                      color: var(--accent-blue),
+                    }}>{c}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{
+                background: var(--bg-secondary), borderRadius: 4, padding: '8px 10px',
+                color: var(--text-muted), fontSize: 10, fontFamily: var(--font-mono),
+              }}>
+                <div style={{ color: var(--text-secondary), marginBottom: 4 }}>Agent ID</div>
+                <div style={{ color: var(--accent-cyan) }}>{selected.id}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ── Execute workflow panel ─────────────────────────────────────────────
+    const ExecutePage = ({ onExecuted }) => {
+      const [wfId, setWfId] = useState('startup-mvp');
+      const [ctx, setCtx] = useState('{\n  "project_brief": "B2B SaaS platform",\n  "target_market": "SMB teams"\n}');
+      const [loading, setLoading] = useState(false);
+      const [result, setResult] = useState(null);
+      const [error, setError] = useState(null);
+
+      const workflows = ['startup-mvp', 'marketing-campaign', 'enterprise-feature'];
+
+      const run = async () => {
+        setLoading(true); setError(null); setResult(null);
+        try {
+          const parsed = JSON.parse(ctx);
+          const res = await api.execute(wfId, parsed);
+          setResult(res);
+          onExecuted(res);
+        } catch(e) { setError(e.message); }
+        finally { setLoading(false); }
+      };
+
+      return (
+        <div style={{ background: var(--bg-card), border: `1px solid ${var(--border)}`, borderRadius: 8, padding: 20, marginBottom: 20 }}>
+          <div style={{ color: var(--text-secondary), fontSize: 10, letterSpacing: '0.1em', marginBottom: 16 }}>
+            EXECUTE WORKFLOW
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div>
+              <div style={{ color: var(--text-muted), fontSize: 10, marginBottom: 6 }}>WORKFLOW</div>
+              <select value={wfId} onChange={e => setWfId(e.target.value)} style={{
+                width: '100%', padding: '8px 12px', background: var(--bg-secondary),
+                border: `1px solid ${var(--border)}`, borderRadius: 6, color: var(--text-primary),
+              }}>
+                {workflows.map(w => <option key={w} value={w}>{w}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={run} disabled={loading} style={{
+                padding: '8px 20px', borderRadius: 6, fontWeight: 600, letterSpacing: '0.05em',
+                background: loading ? var(--bg-secondary) : 'linear-gradient(135deg, #1a5a9a, #2d8aff)',
+                border: `1px solid ${loading ? var(--border) : var(--accent-blue)}`,
+                color: loading ? var(--text-muted) : '#fff',
+                transition: 'all 0.15s', width: '100%',
+              }}>
+                {loading ? '⚡ Starting...' : '▶ Execute'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <div style={{ color: var(--text-muted), fontSize: 10, marginBottom: 6 }}>CONTEXT (JSON)</div>
+            <textarea value={ctx} onChange={e => setCtx(e.target.value)} rows={5} style={{
+              width: '100%', padding: '8px 12px', background: var(--bg-secondary),
+              border: `1px solid ${error ? var(--accent-red) : var(--border)}`,
+              borderRadius: 6, color: var(--text-primary), resize: 'vertical',
+            }}/>
+          </div>
+          {error && <div style={{ color: var(--accent-red), fontSize: 11, marginTop: 8 }}>✗ {error}</div>}
+          {result && (
+            <div style={{
+              marginTop: 12, padding: '10px 14px', borderRadius: 6,
+              background: 'rgba(61,186,122,0.08)', border: '1px solid rgba(61,186,122,0.3)',
+            }}>
+              <div style={{ color: var(--accent-green), fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
+                ✓ Execution started
+              </div>
+              <div style={{ color: var(--text-secondary), fontSize: 10 }}>
+                ID: {result.execution_id}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ── Executions page ───────────────────────────────────────────────────
+    const ExecutionsPage = () => {
+      const [executions, setExecutions] = useState([]);
+      const [polling, setPolling] = useState({});
+
+      const addExecution = useCallback((ex) => {
+        setExecutions(prev => [ex, ...prev]);
+        setPolling(p => ({ ...p, [ex.execution_id]: true }));
+      }, []);
+
+      useEffect(() => {
+        const interval = setInterval(async () => {
+          const toUpdate = Object.keys(polling).filter(id => polling[id]);
+          for (const id of toUpdate) {
+            try {
+              const updated = await api.getExecution(id);
+              setExecutions(prev => prev.map(e => e.execution_id === id ? updated : e));
+              if (['COMPLETED','FAILED','ABORTED'].includes(updated.status)) {
+                setPolling(p => ({ ...p, [id]: false }));
+              }
+            } catch {}
+          }
+        }, 2000);
+        return () => clearInterval(interval);
+      }, [polling]);
+
+      return (
+        <div>
+          <ExecutePage onExecuted={addExecution} />
+          <div style={{ color: var(--text-secondary), fontSize: 10, letterSpacing: '0.1em', marginBottom: 12 }}>
+            EXECUTION HISTORY
+          </div>
+          {executions.length === 0 ? (
+            <div style={{
+              background: var(--bg-card), border: `1px solid ${var(--border)}`,
+              borderRadius: 8, padding: '40px 20px', textAlign: 'center',
+            }}>
+              <div style={{ color: var(--text-muted), fontSize: 40, marginBottom: 12 }}>⚡</div>
+              <div style={{ color: var(--text-secondary) }}>No executions yet</div>
+              <div style={{ color: var(--text-muted), fontSize: 11, marginTop: 6 }}>
+                Execute a workflow above to see results here
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {executions.map(ex => (
+                <div key={ex.execution_id} style={{
+                  background: var(--bg-card), border: `1px solid ${var(--border)}`,
+                  borderRadius: 8, padding: '14px 16px',
+                  borderLeft: `3px solid ${
+                    ex.status === 'COMPLETED' ? var(--accent-green) :
+                    ex.status === 'ACTIVE' ? var(--accent-blue) :
+                    ex.status === 'FAILED' ? var(--accent-red) : var(--text-muted)
+                  }`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                        <span style={{ color: var(--text-primary), fontWeight: 600 }}>{ex.workflow_name}</span>
+                        <StatusBadge status={ex.status} />
+                      </div>
+                      <div style={{ color: var(--text-muted), fontSize: 10 }}>
+                        {ex.execution_id} · {ex.current_step ? `Step: ${ex.current_step}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ color: var(--text-secondary), fontSize: 11 }}>
+                        {ex.completed_steps}/{ex.total_steps} steps
+                      </div>
+                      <div style={{
+                        background: var(--bg-secondary), borderRadius: 2,
+                        height: 4, width: 100, marginTop: 4, overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          height: '100%', borderRadius: 2,
+                          background: ex.status === 'COMPLETED' ? var(--accent-green) : var(--accent-blue),
+                          width: ex.total_steps > 0 ? `${(ex.completed_steps/ex.total_steps)*100}%` : '0%',
+                          transition: 'width 0.4s ease',
+                        }}/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ── Marketplace page ───────────────────────────────────────────────────
+    const MarketplacePage = () => {
+      const featured = [
+        { id: 'engineering.blockchain-security-auditor', name: 'Blockchain Security Auditor', division: 'engineering', tier: 'verified', downloads: 1240, rating: 4.8, caps: ['smart-contract-audit','solidity','exploit-analysis'] },
+        { id: 'specialized.mcp-integration-engineer', name: 'MCP Integration Engineer', division: 'specialized', tier: 'official', downloads: 3420, rating: 4.9, caps: ['mcp','model-context-protocol','ai-integration'] },
+        { id: 'marketing.viral-content-architect', name: 'Viral Content Architect', division: 'marketing', tier: 'community', downloads: 567, rating: 4.2, caps: ['viral-content','tiktok','growth'] },
+        { id: 'engineering.rust-systems-engineer', name: 'Rust Systems Engineer', division: 'engineering', tier: 'verified', downloads: 890, rating: 4.7, caps: ['rust','tokio','systems-programming'] },
+        { id: 'specialized.ai-cost-optimizer', name: 'AI Cost Optimizer', division: 'specialized', tier: 'official', downloads: 2100, rating: 4.6, caps: ['cost-optimization','llm-routing','token-management'] },
+        { id: 'design.motion-design-engineer', name: 'Motion Design Engineer', division: 'design', tier: 'community', downloads: 340, rating: 4.1, caps: ['animation','framer-motion','lottie'] },
+      ];
+      const tierColors = { official: var(--accent-amber), verified: var(--accent-green), community: var(--accent-blue) };
+      return (
+        <div>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(45,138,255,0.1), rgba(0,212,255,0.05))',
+            border: `1px solid ${var(--border-bright)}`, borderRadius: 10, padding: '24px 28px', marginBottom: 24,
+          }}>
+            <div style={{ color: var(--accent-cyan), fontSize: 11, letterSpacing: '0.15em', marginBottom: 8 }}>
+              AGENT MARKETPLACE
+            </div>
+            <div style={{ color: var(--text-primary), fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
+              Discover & Install Community Agents
+            </div>
+            <div style={{ color: var(--text-secondary), fontSize: 12 }}>
+              Official, verified, and community agents. One command to install.
+            </div>
+            <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
+              <input placeholder="Search marketplace..." style={{
+                flex: 1, maxWidth: 320, padding: '8px 14px',
+                background: var(--bg-card), border: `1px solid ${var(--border)}`,
+                borderRadius: 6, color: var(--text-primary),
+              }}/>
+              <button style={{
+                padding: '8px 16px', borderRadius: 6, fontWeight: 600,
+                background: 'linear-gradient(135deg, #1a5a9a, #2d8aff)',
+                border: `1px solid ${var(--accent-blue)}`, color: '#fff',
+              }}>Search</button>
+            </div>
+          </div>
+
+          <div style={{ color: var(--text-secondary), fontSize: 10, letterSpacing: '0.1em', marginBottom: 12 }}>
+            FEATURED AGENTS
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+            {featured.map(agent => (
+              <div key={agent.id} style={{
+                background: var(--bg-card), border: `1px solid ${var(--border)}`,
+                borderRadius: 8, padding: 16,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ color: var(--text-primary), fontWeight: 600, marginBottom: 2 }}>{agent.name}</div>
+                    <div style={{ color: var(--text-muted), fontSize: 10 }}>{agent.id}</div>
+                  </div>
+                  <span style={{
+                    padding: '2px 7px', borderRadius: 3, fontSize: 9, fontWeight: 700,
+                    background: `${tierColors[agent.tier]}22`,
+                    border: `1px solid ${tierColors[agent.tier]}44`,
+                    color: tierColors[agent.tier], letterSpacing: '0.05em',
+                  }}>{agent.tier.toUpperCase()}</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 12 }}>
+                  {agent.caps.map(c => (
+                    <span key={c} style={{
+                      padding: '1px 5px', borderRadius: 3, fontSize: 9,
+                      background: var(--bg-secondary), border: `1px solid ${var(--border)}`,
+                      color: var(--text-secondary),
+                    }}>{c}</span>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <span style={{ color: var(--text-muted), fontSize: 10 }}>⬇ {agent.downloads.toLocaleString()}</span>
+                    <span style={{ color: var(--accent-amber), fontSize: 10 }}>★ {agent.rating}</span>
+                  </div>
+                  <button style={{
+                    padding: '4px 12px', borderRadius: 4, fontSize: 10, fontWeight: 600,
+                    background: 'rgba(45,138,255,0.12)', border: '1px solid rgba(45,138,255,0.3)',
+                    color: var(--accent-blue),
+                  }}>Install</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ── Replay page ────────────────────────────────────────────────────────
+    const ReplayPage = () => (
+      <div>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(154,106,255,0.1), rgba(45,138,255,0.05))',
+          border: '1px solid rgba(154,106,255,0.3)', borderRadius: 10,
+          padding: '24px 28px', marginBottom: 24,
+        }}>
+          <div style={{ color: var(--accent-purple), fontSize: 11, letterSpacing: '0.15em', marginBottom: 8 }}>
+            REPLAY & DEBUG MODE
+          </div>
+          <div style={{ color: var(--text-primary), fontSize: 20, fontWeight: 700, marginBottom: 8 }}>
+            Step Through Any Execution
+          </div>
+          <div style={{ color: var(--text-secondary), fontSize: 12 }}>
+            Replay past executions, set breakpoints between steps, patch inputs, mock outputs.
+            No other orchestration platform has this.
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          {[
+            { title: '↺ Replay Execution', desc: 'Re-run a past execution step by step with full observability. Compare output with the original.', action: 'Start Replay' },
+            { title: '⬡ Add Breakpoints', desc: 'Pause execution before any named step. Inspect intermediate outputs before advancing the DAG.', action: 'Set Breakpoints' },
+            { title: '✎ Patch Inputs', desc: 'Override the input to a specific step during replay. Test how downstream agents respond to different data.', action: 'Patch Input' },
+            { title: '◈ Mock Outputs', desc: 'Skip an agent LLM call entirely. Provide a mock output to test downstream steps without burning tokens.', action: 'Mock Output' },
+          ].map(card => (
+            <div key={card.title} style={{
+              background: var(--bg-card), border: `1px solid ${var(--border)}`,
+              borderRadius: 8, padding: 20,
+            }}>
+              <div style={{ color: var(--text-primary), fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{card.title}</div>
+              <div style={{ color: var(--text-secondary), fontSize: 12, lineHeight: 1.5, marginBottom: 16 }}>{card.desc}</div>
+              <button style={{
+                padding: '6px 14px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                background: 'rgba(154,106,255,0.1)', border: '1px solid rgba(154,106,255,0.3)',
+                color: var(--accent-purple),
+              }}>{card.action}</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+
+    // ── Settings page ──────────────────────────────────────────────────────
+    const SettingsPage = () => {
+      const [key, setKey] = useState(localStorage.getItem('syndicate_api_key') || '');
+      const [url, setUrl] = useState(localStorage.getItem('syndicate_base_url') || 'http://localhost:8000');
+      const [saved, setSaved] = useState(false);
+
+      const save = () => {
+        localStorage.setItem('syndicate_api_key', key);
+        localStorage.setItem('syndicate_base_url', url);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      };
+
+      return (
+        <div style={{ maxWidth: 560 }}>
+          {[
+            { label: 'API Key', val: key, set: setKey, type: 'password', hint: 'Starts with sk-' },
+            { label: 'Base URL', val: url, set: setUrl, type: 'text', hint: 'http://localhost:8000' },
+          ].map(f => (
+            <div key={f.label} style={{ marginBottom: 20 }}>
+              <div style={{ color: var(--text-muted), fontSize: 10, letterSpacing: '0.1em', marginBottom: 8 }}>{f.label.toUpperCase()}</div>
+              <input type={f.type} value={f.val} onChange={e => f.set(e.target.value)}
+                placeholder={f.hint} style={{
+                  width: '100%', padding: '10px 14px', background: var(--bg-card),
+                  border: `1px solid ${var(--border)}`, borderRadius: 6, color: var(--text-primary),
+                }}/>
+            </div>
+          ))}
+          <button onClick={save} style={{
+            padding: '10px 24px', borderRadius: 6, fontWeight: 600,
+            background: saved ? 'rgba(61,186,122,0.15)' : 'linear-gradient(135deg, #1a5a9a, #2d8aff)',
+            border: saved ? '1px solid rgba(61,186,122,0.4)' : `1px solid ${var(--accent-blue)}`,
+            color: saved ? var(--accent-green) : '#fff',
+            transition: 'all 0.2s',
+          }}>
+            {saved ? '✓ Saved' : 'Save Settings'}
+          </button>
+        </div>
+      );
+    };
+
+    // ── Main app ──────────────────────────────────────────────────────────
+    const App = () => {
+      const [page, setPage] = useState('overview');
+      const [health, setHealth] = useState(false);
+      const [agents, setAgents] = useState([]);
+      const [executions, setExecutions] = useState([]);
+
+      const TITLES = {
+        overview: 'Overview', executions: 'Executions', agents: 'Agent Catalog',
+        workflows: 'Workflows', marketplace: 'Marketplace', replay: 'Replay & Debug',
+        settings: 'Settings',
+      };
+
+      useEffect(() => {
+        api.health().then(() => setHealth(true)).catch(() => setHealth(false));
+        api.listAgents().then(r => setAgents(r.agents || [])).catch(() => {});
+      }, []);
+
+      const content = {
+        overview: <OverviewPage agents={agents} executions={executions} />,
+        executions: <ExecutionsPage />,
+        agents: <AgentsPage agents={agents} />,
+        workflows: (
+          <div style={{ color: var(--text-secondary), textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: 40, marginBottom: 16 }}>⋈</div>
+            <div style={{ fontSize: 14 }}>Workflow DAG editor coming soon.</div>
+            <div style={{ fontSize: 11, marginTop: 8, color: var(--text-muted) }}>
+              Define workflows via YAML in /workflows/examples/
+            </div>
+          </div>
+        ),
+        marketplace: <MarketplacePage />,
+        replay: <ReplayPage />,
+        settings: <SettingsPage />,
+      }[page];
+
+      return (
+        <div>
+          <style>{`
+            @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+          `}</style>
+          <Sidebar page={page} setPage={setPage} />
+          <TopBar title={TITLES[page]} health={health} />
+          <main style={{ marginLeft: 200, paddingTop: 70 }}>
+            <div style={{ padding: '24px 28px', maxWidth: 1200 }}>
+              {content}
+            </div>
+          </main>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -8,19 +8,47 @@ build-backend = "setuptools.backends.legacy:build"
 [project]
 name = "syndicate-ai"
 version = "1.0.0"
-description = "Deterministic Multi-Agent Orchestration Platform"
+description = "Deterministic Multi-Agent Orchestration Platform — typed contracts, DAG execution, real-time streaming"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
-authors = [{ name = "NeoCodeSmith" }]
-keywords = ["ai", "agents", "orchestration", "llm", "multi-agent"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Application Frameworks",
+authors = [{ name = "NeoCodeSmith", email = "neocode@syndicate.ai" }]
+keywords = [
+  "ai", "agents", "orchestration", "llm", "multi-agent",
+  "dag", "workflow", "fastapi", "celery", "streaming"
 ]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Application Frameworks",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/NeoCodeSmith/syndicate-ai"
+Documentation = "https://github.com/NeoCodeSmith/syndicate-ai/tree/main/docs"
+Repository = "https://github.com/NeoCodeSmith/syndicate-ai"
+"Bug Tracker" = "https://github.com/NeoCodeSmith/syndicate-ai/issues"
+
+[project.optional-dependencies]
+server = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
+  "celery[redis]>=5.4.0",
+  "redis>=5.2.0",
+  "pydantic-settings>=2.6.0",
+  "slowapi>=0.1.9",
+  "prometheus-fastapi-instrumentator>=7.0.0",
+]
+sdk = [
+  "httpx>=0.28.0",
+]
+all = ["syndicate-ai[server,sdk]"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -45,12 +73,9 @@ plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = [
-    "celery.*",
-    "redis.*",
-    "slowapi.*",
-    "prometheus_fastapi_instrumentator.*",
-    "opentelemetry.*",
-    "pydantic_settings.*",
+  "celery.*", "redis.*", "slowapi.*",
+  "prometheus_fastapi_instrumentator.*",
+  "opentelemetry.*", "pydantic_settings.*",
 ]
 ignore_missing_imports = true
 ignore_errors = true
