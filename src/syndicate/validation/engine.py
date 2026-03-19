@@ -37,15 +37,18 @@ class ValidationEngine:
     Engine is notified to retry or escalate.
     """
 
-    def validate(
-        self, output: AgentOutput, agent_def: AgentDefinition
-    ) -> ValidationResult:
+    def validate(self, output: AgentOutput, agent_def: AgentDefinition) -> ValidationResult:
         errors: list[str] = []
 
         # Pass 1: JSON Schema
         schema_errors = self._validate_schema(
-            data={"agent_id": output.agent_id, "workflow_id": output.workflow_id,
-                  "step_id": output.step_id, "status": output.status.value, "data": output.data},
+            data={
+                "agent_id": output.agent_id,
+                "workflow_id": output.workflow_id,
+                "step_id": output.step_id,
+                "status": output.status.value,
+                "data": output.data,
+            },
             schema=agent_def.output_schema,
         )
         errors.extend(schema_errors)
@@ -66,9 +69,7 @@ class ValidationEngine:
 
         return ValidationResult(passed=passed, errors=errors)
 
-    def _validate_schema(
-        self, data: dict[str, Any], schema: dict[str, Any]
-    ) -> list[str]:
+    def _validate_schema(self, data: dict[str, Any], schema: dict[str, Any]) -> list[str]:
         errors = []
         try:
             jsonschema.validate(instance=data, schema=schema)
@@ -78,9 +79,7 @@ class ValidationEngine:
             errors.append(f"Schema definition error: {exc.message}")
         return errors
 
-    def _run_assertions(
-        self, data: dict[str, Any], assertions: list[dict[str, str]]
-    ) -> list[str]:
+    def _run_assertions(self, data: dict[str, Any], assertions: list[dict[str, str]]) -> list[str]:
         errors = []
         for assertion in assertions:
             field = assertion.get("field", "")
@@ -93,9 +92,7 @@ class ValidationEngine:
 
         return errors
 
-    def _evaluate_rule(
-        self, value: Any, rule: str, context: dict[str, Any]
-    ) -> tuple[bool, str]:
+    def _evaluate_rule(self, value: Any, rule: str, context: dict[str, Any]) -> tuple[bool, str]:
         if rule == "not_null":
             return (value is not None, "value is null")
 

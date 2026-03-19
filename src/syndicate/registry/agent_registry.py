@@ -2,6 +2,7 @@
 SYNDICATE AI — Agent Registry
 File: src/syndicate/registry/agent_registry.py
 """
+
 from __future__ import annotations
 
 import logging

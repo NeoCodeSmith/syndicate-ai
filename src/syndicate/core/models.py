@@ -2,6 +2,7 @@
 SYNDICATE AI — Core Data Models
 File: src/syndicate/core/models.py
 """
+
 from __future__ import annotations
 
 import uuid
@@ -146,8 +147,11 @@ class WorkflowDefinition(BaseModel):
                 raise ValueError(
                     f"Step '{step.name}' references unknown on_success: '{step.on_success}'"
                 )
-            if step.on_failure and step.on_failure not in step_names \
-                    and step.on_failure not in ("ESCALATE", "ABORT"):
+            if (
+                step.on_failure
+                and step.on_failure not in step_names
+                and step.on_failure not in ("ESCALATE", "ABORT")
+            ):
                 raise ValueError(
                     f"Step '{step.name}' references unknown on_failure: '{step.on_failure}'"
                 )

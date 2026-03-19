@@ -6,6 +6,7 @@ Deterministic DAG executor. Replaces markdown-based orchestration with
 a real state machine that advances workflow steps, handles retries with
 exponential backoff, and escalates on terminal failures.
 """
+
 from __future__ import annotations
 
 import logging
@@ -33,8 +34,9 @@ MAX_STEPS_PER_WORKFLOW = 100
 class OrchestrationEngine:
     """Parses workflow DAGs, dispatches Celery tasks, and enforces state transitions."""
 
-    def __init__(self, celery_app: Celery, redis_client: redis.Redis,
-                 memory_store: Any, agent_registry: Any) -> None:
+    def __init__(
+        self, celery_app: Celery, redis_client: redis.Redis, memory_store: Any, agent_registry: Any
+    ) -> None:
         self._celery = celery_app
         self._redis = redis_client
         self._memory = memory_store
@@ -42,8 +44,12 @@ class OrchestrationEngine:
 
     # ── Public ──────────────────────────────────────────────────────────────
 
-    def start_workflow(self, workflow_def: WorkflowDefinition,
-                       context: dict[str, Any], created_by: str | None = None) -> WorkflowExecution:
+    def start_workflow(
+        self,
+        workflow_def: WorkflowDefinition,
+        context: dict[str, Any],
+        created_by: str | None = None,
+    ) -> WorkflowExecution:
         execution = WorkflowExecution(
             workflow_definition_id=workflow_def.id,
             workflow_name=workflow_def.name,
@@ -60,18 +66,24 @@ class OrchestrationEngine:
         logger.info("Workflow started", extra={"id": execution.id, "name": workflow_def.name})
         return execution
 
-    def on_step_completed(self, execution_id: str, step_name: str,
-                          output: AgentOutput) -> OrchestratorDecision:
+    def on_step_completed(
+        self, execution_id: str, step_name: str, output: AgentOutput
+    ) -> OrchestratorDecision:
         execution = self._load(execution_id)
         workflow_def = self._load_def(execution.workflow_definition_id)
         step_def = self._get_step(workflow_def, step_name)
         step_exec = self._get_step_exec(execution, step_name)
 
-        if sum(1 for s in execution.steps if s.status == StepStatus.COMMITTED) >= MAX_STEPS_PER_WORKFLOW:
+        if (
+            sum(1 for s in execution.steps if s.status == StepStatus.COMMITTED)
+            >= MAX_STEPS_PER_WORKFLOW
+        ):
             return self._abort(execution, "Hard step limit reached")
 
         if output.status == AgentOutputStatus.FAILED:
-            return self._handle_failure(execution, workflow_def, step_def, step_exec, str(output.errors))
+            return self._handle_failure(
+                execution, workflow_def, step_def, step_exec, str(output.errors)
+            )
 
         step_exec.output = output
         step_exec.status = StepStatus.COMMITTED
@@ -90,7 +102,12 @@ class OrchestrationEngine:
         for p in next_def.parallel_with:
             p_def = self._get_step(workflow_def, p)
             if p_def:
-                self._dispatch(execution, workflow_def, p_def, self._resolve_input(execution, workflow_def, p_def))
+                self._dispatch(
+                    execution,
+                    workflow_def,
+                    p_def,
+                    self._resolve_input(execution, workflow_def, p_def),
+                )
         self._dispatch(execution, workflow_def, next_def, next_input)
         return OrchestratorDecision.DISPATCH_NEXT
 
@@ -109,13 +126,15 @@ class OrchestrationEngine:
         step_exec.error_message = error
 
         if step_exec.attempt < max_retries:
-            backoff = min(2 ** step_exec.attempt, 60)
+            backoff = min(2**step_exec.attempt, 60)
             step_exec.status = StepStatus.RETRYING
             step_exec.attempt += 1
             self._persist(execution)
             resolved = self._resolve_input(execution, workflow_def, step_def)
             self._dispatch(execution, workflow_def, step_def, resolved, countdown=backoff)
-            logger.warning(f"Retrying '{step_def.name}' attempt {step_exec.attempt}/{max_retries} in {backoff}s")
+            logger.warning(
+                f"Retrying '{step_def.name}' attempt {step_exec.attempt}/{max_retries} in {backoff}s"
+            )
             return OrchestratorDecision.RETRY_STEP
 
         step_exec.status = StepStatus.ESCALATED
@@ -139,9 +158,13 @@ class OrchestrationEngine:
         self._persist(execution)
         self._celery.send_task(
             "syndicate.execution.tasks.run_agent",
-            kwargs={"execution_id": execution.id, "step_id": step_exec.id,
-                    "agent_id": step_def.agent_id, "step_name": step_def.name,
-                    "input_data": input_data},
+            kwargs={
+                "execution_id": execution.id,
+                "step_id": step_exec.id,
+                "agent_id": step_def.agent_id,
+                "step_name": step_def.name,
+                "input_data": input_data,
+            },
             countdown=countdown,
         )
         logger.info(f"Dispatched '{step_def.name}' → '{step_def.agent_id}'")

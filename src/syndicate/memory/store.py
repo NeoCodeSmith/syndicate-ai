@@ -6,6 +6,7 @@ Two-tier memory replacing the fictional 'Memory' persona fields:
 - Redis: hot context, TTL-based
 - PostgreSQL: durable audit trail (via SQLAlchemy, stub here)
 """
+
 from __future__ import annotations
 
 import json
@@ -22,8 +23,14 @@ class MemoryStore:
     def __init__(self, redis_client: redis_module.Redis) -> None:
         self._redis = redis_client
 
-    def set(self, execution_id: str, key: str, value: Any,
-            step_id: str | None = None, ttl: int = DEFAULT_TTL) -> None:
+    def set(
+        self,
+        execution_id: str,
+        key: str,
+        value: Any,
+        step_id: str | None = None,
+        ttl: int = DEFAULT_TTL,
+    ) -> None:
         self._redis.setex(f"memory:{execution_id}:{key}", ttl, json.dumps(value))
 
     def get(self, execution_id: str, key: str) -> Any | None:

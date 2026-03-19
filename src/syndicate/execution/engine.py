@@ -5,6 +5,7 @@ File: src/syndicate/execution/engine.py
 Handles LLM calls with typed I/O enforcement. Each agent invocation is
 isolated — no shared mutable state, full JSON output enforcement.
 """
+
 from __future__ import annotations
 
 import json
@@ -27,16 +28,27 @@ logger = logging.getLogger(__name__)
 class ExecutionEngine:
     """Calls LLM with rendered system prompt, parses JSON, validates schema."""
 
-    def __init__(self, agent_registry: Any, llm_client: OpenAI, model: str = "claude-opus-4-6") -> None:
+    def __init__(
+        self, agent_registry: Any, llm_client: OpenAI, model: str = "claude-opus-4-6"
+    ) -> None:
         self._registry = agent_registry
         self._llm = llm_client
         self._model = model
 
-    def run(self, execution_id: str, step_id: str, agent_id: str,
-            step_name: str, input_data: dict[str, Any], attempt: int = 1) -> AgentOutput:
+    def run(
+        self,
+        execution_id: str,
+        step_id: str,
+        agent_id: str,
+        step_name: str,
+        input_data: dict[str, Any],
+        attempt: int = 1,
+    ) -> AgentOutput:
         agent_def = self._registry.get(agent_id)
         if not agent_def:
-            return self._fail(execution_id, step_id, agent_id, f"Agent '{agent_id}' not in registry")
+            return self._fail(
+                execution_id, step_id, agent_id, f"Agent '{agent_id}' not in registry"
+            )
 
         system_prompt = self._render(agent_def.execution.system_prompt_template, input_data)
         start = int(time.time() * 1000)
@@ -45,8 +57,11 @@ class ExecutionEngine:
             resp = self._llm.chat.completions.create(
                 model=self._model,
                 messages=[
-                    {"role": "system",
-                     "content": system_prompt + "\n\nRESPOND ONLY WITH VALID JSON. No markdown, no explanation."},
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                        + "\n\nRESPOND ONLY WITH VALID JSON. No markdown, no explanation.",
+                    },
                     {"role": "user", "content": json.dumps(input_data, indent=2)},
                 ],
                 max_tokens=agent_def.execution.max_tokens,
@@ -72,10 +87,14 @@ class ExecutionEngine:
         data_payload = parsed.get("data", parsed)
 
         return AgentOutput(
-            agent_id=agent_id, workflow_id=execution_id, step_id=step_id,
-            status=AgentOutputStatus.SUCCESS, data=data_payload,
-            metadata=AgentOutputMetadata(tokens_used=tokens, model=self._model,
-                                         duration_ms=duration_ms, attempt=attempt),
+            agent_id=agent_id,
+            workflow_id=execution_id,
+            step_id=step_id,
+            status=AgentOutputStatus.SUCCESS,
+            data=data_payload,
+            metadata=AgentOutputMetadata(
+                tokens_used=tokens, model=self._model, duration_ms=duration_ms, attempt=attempt
+            ),
         )
 
     def _render(self, template: str, inputs: dict[str, Any]) -> str:
@@ -101,5 +120,11 @@ class ExecutionEngine:
             return f"Schema error: {e.message}"
 
     def _fail(self, execution_id, step_id, agent_id, reason) -> AgentOutput:
-        return AgentOutput(agent_id=agent_id, workflow_id=execution_id, step_id=step_id,
-                           status=AgentOutputStatus.FAILED, data={}, errors=[reason])
+        return AgentOutput(
+            agent_id=agent_id,
+            workflow_id=execution_id,
+            step_id=step_id,
+            status=AgentOutputStatus.FAILED,
+            data={},
+            errors=[reason],
+        )

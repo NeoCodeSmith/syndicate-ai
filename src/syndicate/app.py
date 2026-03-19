@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # SETTINGS
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -117,6 +118,7 @@ def get_agent_registry():
     global _agent_registry
     if _agent_registry is None:
         from syndicate.registry.agent_registry import AgentRegistry
+
         settings = get_settings()
         _agent_registry = AgentRegistry(agents_dir=settings.agents_dir)
     return _agent_registry
@@ -126,6 +128,7 @@ def get_workflow_registry():
     global _workflow_registry
     if _workflow_registry is None:
         from syndicate.registry.workflow_registry import WorkflowRegistry
+
         settings = get_settings()
         _workflow_registry = WorkflowRegistry(workflows_dir=settings.workflows_dir)
     return _workflow_registry
@@ -135,6 +138,7 @@ def get_memory_store():
     global _memory_store
     if _memory_store is None:
         from syndicate.memory.store import MemoryStore
+
         _memory_store = MemoryStore(redis_client=get_redis())
     return _memory_store
 
@@ -145,6 +149,7 @@ def get_orchestration_engine():
         from celery import current_app as celery_app
 
         from syndicate.orchestration.engine import OrchestrationEngine
+
         _orchestration_engine = OrchestrationEngine(
             celery_app=celery_app,
             redis_client=get_redis(),
@@ -158,6 +163,7 @@ def get_execution_engine():
     global _execution_engine
     if _execution_engine is None:
         from syndicate.execution.engine import ExecutionEngine
+
         settings = get_settings()
         _execution_engine = ExecutionEngine(
             agent_registry=get_agent_registry(),
