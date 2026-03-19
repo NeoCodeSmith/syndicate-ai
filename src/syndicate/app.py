@@ -2,8 +2,8 @@
 SYNDICATE AI — Application Factory
 File: src/syndicate/app.py
 
-Central wiring point. All services are instantiated here and
-accessed via getter functions to avoid circular imports.
+Central wiring point. All services are instantiated here as lazy singletons.
+Settings are loaded from environment variables via pydantic-settings.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SETTINGS
+# SETTINGS — all values from environment / .env file
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -29,11 +29,12 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",  # silently ignore extra env vars
     )
 
     # LLM
     llm_base_url: str = "https://api.anthropic.com/v1"
-    llm_api_key: str
+    llm_api_key: str = ""
     llm_model: str = "claude-opus-4-6"
     llm_fallback_model: str = "claude-sonnet-4-6"
 
@@ -47,10 +48,18 @@ class Settings(BaseSettings):
 
     # Auth
     syndicate_api_keys: str = ""
+    api_key_header_name: str = "X-API-Key"
 
     @property
     def valid_api_keys(self) -> set[str]:
-        return set(k.strip() for k in self.syndicate_api_keys.split(",") if k.strip())
+        return {k.strip() for k in self.syndicate_api_keys.split(",") if k.strip()}
+
+    # CORS — comma-separated list of allowed origins
+    cors_origins: str = "http://localhost:3000"
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     # Execution
     max_steps_per_workflow: int = 100
@@ -66,15 +75,21 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"
     otel_service_name: str = "syndicate-ai"
+    otel_exporter_otlp_endpoint: str = "http://otel-collector:4317"
     prometheus_enabled: bool = True
+
+    # File paths
+    agents_dir: Path = Path("agents")
+    workflows_dir: Path = Path("workflows")
 
     # Environment
     environment: str = "development"
     debug: bool = False
 
-    # Paths
-    agents_dir: Path = Path("agents")
-    workflows_dir: Path = Path("workflows")
+    # Flower / Grafana (used only in docker-compose)
+    flower_user: str = "admin"
+    flower_password: str = "change-me"
+    grafana_admin_password: str = "change-me"
 
 
 @lru_cache
@@ -83,7 +98,7 @@ def get_settings() -> Settings:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SERVICE GETTERS (lazy singletons)
+# LAZY SINGLETONS
 # ─────────────────────────────────────────────────────────────────────────────
 
 _redis_client: redis_module.Redis | None = None
@@ -114,7 +129,7 @@ def get_llm_client() -> OpenAI:
     return _llm_client
 
 
-def get_agent_registry():
+def get_agent_registry():  # type: ignore[return]
     global _agent_registry
     if _agent_registry is None:
         from syndicate.registry.agent_registry import AgentRegistry
@@ -124,7 +139,7 @@ def get_agent_registry():
     return _agent_registry
 
 
-def get_workflow_registry():
+def get_workflow_registry():  # type: ignore[return]
     global _workflow_registry
     if _workflow_registry is None:
         from syndicate.registry.workflow_registry import WorkflowRegistry
@@ -134,7 +149,7 @@ def get_workflow_registry():
     return _workflow_registry
 
 
-def get_memory_store():
+def get_memory_store():  # type: ignore[return]
     global _memory_store
     if _memory_store is None:
         from syndicate.memory.store import MemoryStore
@@ -143,7 +158,7 @@ def get_memory_store():
     return _memory_store
 
 
-def get_orchestration_engine():
+def get_orchestration_engine():  # type: ignore[return]
     global _orchestration_engine
     if _orchestration_engine is None:
         from celery import current_app as celery_app
@@ -159,7 +174,7 @@ def get_orchestration_engine():
     return _orchestration_engine
 
 
-def get_execution_engine():
+def get_execution_engine():  # type: ignore[return]
     global _execution_engine
     if _execution_engine is None:
         from syndicate.execution.engine import ExecutionEngine
