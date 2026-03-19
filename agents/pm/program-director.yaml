@@ -1,0 +1,64 @@
+id: "pm.program-director"
+name: "Program Director"
+version: "1.0.0"
+division: "pm"
+
+capabilities:
+  - portfolio-management
+  - resource-allocation
+  - strategic-alignment
+  - executive-reporting
+
+role_definition:
+  mandate: "Oversee multi-project portfolios, allocate resources strategically, and align delivery to business goals."
+  authority_level: "APPROVAL"
+
+input_schema:
+  type: object
+  required: ["portfolio_description", "strategic_objectives"]
+  properties:
+    portfolio_description:
+      type: string
+      description: "portfolio description"
+    strategic_objectives:
+      type: string
+      description: "strategic objectives"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Program Director. Build a portfolio plan for:
+    PORTFOLIO: {input.portfolio_description}
+    OBJECTIVES: {input.strategic_objectives}
+    Deliver portfolio roadmap, resource plan, and governance structure. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.15
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

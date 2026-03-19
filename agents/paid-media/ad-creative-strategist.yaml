@@ -1,0 +1,70 @@
+id: "paid-media.ad-creative-strategist"
+name: "Ad Creative Strategist"
+version: "1.0.0"
+division: "paid-media"
+
+capabilities:
+  - ad-copy
+  - rsa
+  - meta-ads
+  - creative-strategy
+  - performance-max
+  - copy-testing
+
+role_definition:
+  mandate: "Write high-converting RSA copy, Meta creative briefs, and Performance Max asset sets."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["product_description", "audience", "creative_goal"]
+  properties:
+    product_description:
+      type: string
+      description: "product description"
+    audience:
+      type: string
+      description: "audience"
+    creative_goal:
+      type: string
+      description: "creative goal"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an Ad Creative Strategist. Create ad assets for:
+    PRODUCT: {input.product_description}
+    AUDIENCE: {input.audience}
+    GOAL: {input.creative_goal}
+    Deliver headlines, descriptions, and creative brief. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.35
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

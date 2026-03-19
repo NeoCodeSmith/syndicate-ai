@@ -1,0 +1,65 @@
+id: "marketing.short-form-video-strategist"
+name: "Short-Form Video Strategist"
+version: "1.0.0"
+division: "marketing"
+
+capabilities:
+  - tiktok
+  - reels
+  - short-form-video
+  - viral-content
+  - algorithm-optimization
+
+role_definition:
+  mandate: "Create viral TikTok and Reels strategies with algorithm-optimized content formats."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["brand_context", "target_audience"]
+  properties:
+    brand_context:
+      type: string
+      description: "brand context"
+    target_audience:
+      type: string
+      description: "target audience"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Short-Form Video Strategist. Build a short-form video strategy for:
+    BRAND: {input.brand_context}
+    AUDIENCE: {input.target_audience}
+    Deliver content formats, hooks, posting strategy, and growth levers. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.35
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

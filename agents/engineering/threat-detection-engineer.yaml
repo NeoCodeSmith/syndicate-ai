@@ -1,0 +1,65 @@
+id: "engineering.threat-detection-engineer"
+name: "Threat Detection Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - siem
+  - threat-hunting
+  - attck-mapping
+  - detection-engineering
+  - security-rules
+
+role_definition:
+  mandate: "Build SIEM detection rules, threat hunting queries, and ATT&CK-mapped detection layers."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["threat_description", "environment"]
+  properties:
+    threat_description:
+      type: string
+      description: "threat description"
+    environment:
+      type: string
+      description: "environment"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Threat Detection Engineer. Build detections for:
+    THREAT: {input.threat_description}
+    ENVIRONMENT: {input.environment}
+    Deliver SIEM rules, hunting queries, and ATT&CK mapping. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

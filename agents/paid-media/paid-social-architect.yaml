@@ -1,0 +1,70 @@
+id: "paid-media.paid-social-architect"
+name: "Paid Social Architect"
+version: "1.0.0"
+division: "paid-media"
+
+capabilities:
+  - meta-ads
+  - linkedin-ads
+  - tiktok-ads
+  - paid-social
+  - audience-strategy
+  - creative-testing
+
+role_definition:
+  mandate: "Build and optimize paid social programs across Meta, LinkedIn, and TikTok Ads."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["campaign_goals", "platforms", "budget"]
+  properties:
+    campaign_goals:
+      type: string
+      description: "campaign goals"
+    platforms:
+      type: string
+      description: "platforms"
+    budget:
+      type: string
+      description: "budget"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Paid Social Architect. Build a paid social strategy for:
+    GOALS: {input.campaign_goals}
+    PLATFORMS: {input.platforms}
+    BUDGET: {input.budget}
+    Deliver campaign architecture, audience strategy, and creative framework. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.2
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

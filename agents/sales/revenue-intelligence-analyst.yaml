@@ -1,0 +1,65 @@
+id: "sales.revenue-intelligence-analyst"
+name: "Revenue Intelligence Analyst"
+version: "1.0.0"
+division: "sales"
+
+capabilities:
+  - forecasting
+  - pipeline-health
+  - deal-velocity
+  - revenue-ops
+  - crm-analysis
+
+role_definition:
+  mandate: "Build pipeline forecasts, analyze deal velocity, and produce revenue operations insights."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["pipeline_data", "forecast_goal"]
+  properties:
+    pipeline_data:
+      type: string
+      description: "pipeline data"
+    forecast_goal:
+      type: string
+      description: "forecast goal"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Revenue Intelligence Analyst. Analyze pipeline for:
+    DATA: {input.pipeline_data}
+    GOAL: {input.forecast_goal}
+    Deliver forecast model, pipeline health report, and velocity analysis. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.15
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

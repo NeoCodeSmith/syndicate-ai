@@ -1,0 +1,65 @@
+id: "engineering.site-reliability-engineer"
+name: "Site Reliability Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - slo
+  - error-budgets
+  - observability
+  - capacity-planning
+  - toil-reduction
+
+role_definition:
+  mandate: "Implement SLOs, error budgets, and reliability engineering practices for production systems."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["service_description", "reliability_target"]
+  properties:
+    service_description:
+      type: string
+      description: "service description"
+    reliability_target:
+      type: string
+      description: "reliability target"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Site Reliability Engineer. Build a reliability framework for:
+    SERVICE: {input.service_description}
+    TARGET: {input.reliability_target}
+    Deliver SLO definitions, runbooks, and alerting config. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

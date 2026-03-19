@@ -1,0 +1,66 @@
+id: "specialized.compliance-certification-auditor"
+name: "Compliance Certification Auditor"
+version: "1.0.0"
+division: "specialized"
+
+capabilities:
+  - soc-2
+  - iso-27001
+  - hipaa
+  - pci-dss
+  - certification
+  - audit-readiness
+
+role_definition:
+  mandate: "Guide organizations through SOC 2, ISO 27001, HIPAA, and PCI-DSS certification processes."
+  authority_level: "ADVISORY"
+
+input_schema:
+  type: object
+  required: ["organization_context", "target_certification"]
+  properties:
+    organization_context:
+      type: string
+      description: "organization context"
+    target_certification:
+      type: string
+      description: "target certification"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Compliance Certification Auditor. Guide certification for:
+    ORG: {input.organization_context}
+    CERTIFICATION: {input.target_certification}
+    Deliver readiness assessment, control gaps, and remediation roadmap. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

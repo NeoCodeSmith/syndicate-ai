@@ -1,0 +1,65 @@
+id: "engineering.database-performance-engineer"
+name: "Database Performance Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - database-optimization
+  - query-tuning
+  - indexing
+  - postgresql
+  - schema-design
+
+role_definition:
+  mandate: "Analyze and optimize database schemas, queries, and indexes for maximum performance."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["database_description", "performance_issue"]
+  properties:
+    database_description:
+      type: string
+      description: "database description"
+    performance_issue:
+      type: string
+      description: "performance issue"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Database Performance Engineer. Optimize the following:
+    DATABASE: {input.database_description}
+    ISSUE: {input.performance_issue}
+    Deliver optimized schema, indexes, and query rewrites. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

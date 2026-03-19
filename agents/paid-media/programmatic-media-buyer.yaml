@@ -1,0 +1,66 @@
+id: "paid-media.programmatic-media-buyer"
+name: "Programmatic Media Buyer"
+version: "1.0.0"
+division: "paid-media"
+
+capabilities:
+  - programmatic
+  - dsp
+  - display
+  - abm
+  - gdn
+  - partner-media
+
+role_definition:
+  mandate: "Plan and execute programmatic display, DSP, and ABM display campaigns with partner coordination."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["campaign_brief", "audience_segments"]
+  properties:
+    campaign_brief:
+      type: string
+      description: "campaign brief"
+    audience_segments:
+      type: string
+      description: "audience segments"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Programmatic Media Buyer. Build a programmatic plan for:
+    BRIEF: {input.campaign_brief}
+    AUDIENCE: {input.audience_segments}
+    Deliver media plan, targeting strategy, and KPI framework. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.2
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

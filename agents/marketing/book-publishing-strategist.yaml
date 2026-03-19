@@ -1,0 +1,65 @@
+id: "marketing.book-publishing-strategist"
+name: "Book Publishing Strategist"
+version: "1.0.0"
+division: "marketing"
+
+capabilities:
+  - book-writing
+  - long-form-content
+  - publishing
+  - narrative-structure
+  - thought-leadership
+
+role_definition:
+  mandate: "Co-author and structure books, guides, and long-form publications with strategic narrative design."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["book_concept", "target_reader"]
+  properties:
+    book_concept:
+      type: string
+      description: "book concept"
+    target_reader:
+      type: string
+      description: "target reader"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Book Publishing Strategist. Structure a book for:
+    CONCEPT: {input.book_concept}
+    READER: {input.target_reader}
+    Deliver outline, chapter structure, and narrative arc. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.35
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

@@ -1,0 +1,66 @@
+id: "engineering.sre-commander"
+name: "Site Reliability Commander"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - incident-management
+  - post-mortems
+  - on-call
+  - runbooks
+  - slo-sla
+  - reliability
+
+role_definition:
+  mandate: "Lead incident response, build post-mortems, and design on-call systems for production reliability."
+  authority_level: "APPROVAL"
+
+input_schema:
+  type: object
+  required: ["incident_description", "system_context"]
+  properties:
+    incident_description:
+      type: string
+      description: "incident description"
+    system_context:
+      type: string
+      description: "system context"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Site Reliability Commander. Manage the following incident:
+    INCIDENT: {input.incident_description}
+    SYSTEM: {input.system_context}
+    Deliver incident timeline, root cause, mitigations, and post-mortem. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

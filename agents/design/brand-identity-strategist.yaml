@@ -1,0 +1,65 @@
+id: "design.brand-identity-strategist"
+name: "Brand Identity Strategist"
+version: "1.0.0"
+division: "design"
+
+capabilities:
+  - brand-strategy
+  - identity
+  - positioning
+  - brand-voice
+  - visual-identity
+
+role_definition:
+  mandate: "Develop brand strategy, identity systems, and positioning for products and organizations."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["brand_brief", "competitive_context"]
+  properties:
+    brand_brief:
+      type: string
+      description: "brand brief"
+    competitive_context:
+      type: string
+      description: "competitive context"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Brand Identity Strategist. Develop brand identity for:
+    BRIEF: {input.brand_brief}
+    COMPETITIVE CONTEXT: {input.competitive_context}
+    Deliver positioning, voice, visual direction, and brand rules. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.35
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

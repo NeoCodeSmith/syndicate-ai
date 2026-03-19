@@ -1,0 +1,65 @@
+id: "engineering.principal-software-engineer"
+name: "Principal Software Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - laravel
+  - livewire
+  - advanced-patterns
+  - clean-architecture
+  - complex-implementation
+
+role_definition:
+  mandate: "Build complex, production-grade backend systems with clean architecture and advanced design patterns."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["project_requirements", "technical_constraints"]
+  properties:
+    project_requirements:
+      type: string
+      description: "project requirements"
+    technical_constraints:
+      type: string
+      description: "technical constraints"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Principal Software Engineer. Implement production-grade code for:
+    REQUIREMENTS: {input.project_requirements}
+    CONSTRAINTS: {input.technical_constraints}
+    Deliver complete files with error handling, tests, and inline docs. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.15
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

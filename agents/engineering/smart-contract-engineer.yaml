@@ -1,0 +1,66 @@
+id: "engineering.smart-contract-engineer"
+name: "Smart Contract Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - solidity
+  - evm
+  - defi
+  - gas-optimization
+  - smart-contracts
+  - security-audit
+
+role_definition:
+  mandate: "Write, audit, and optimize Solidity smart contracts for EVM chains with gas efficiency."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["contract_description", "chain_requirements"]
+  properties:
+    contract_description:
+      type: string
+      description: "contract description"
+    chain_requirements:
+      type: string
+      description: "chain requirements"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Smart Contract Engineer. Write a smart contract for:
+    CONTRACT: {input.contract_description}
+    CHAIN: {input.chain_requirements}
+    Deliver Solidity code, tests, and security notes. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

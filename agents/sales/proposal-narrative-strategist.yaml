@@ -1,0 +1,65 @@
+id: "sales.proposal-narrative-strategist"
+name: "Proposal Narrative Strategist"
+version: "1.0.0"
+division: "sales"
+
+capabilities:
+  - rfp-response
+  - proposals
+  - win-themes
+  - narrative-structure
+  - executive-summary
+
+role_definition:
+  mandate: "Write RFP responses and proposals that persuade through structured narrative and win themes."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["rfp_requirements", "win_themes"]
+  properties:
+    rfp_requirements:
+      type: string
+      description: "rfp requirements"
+    win_themes:
+      type: string
+      description: "win themes"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Proposal Narrative Strategist. Write a proposal for:
+    RFP: {input.rfp_requirements}
+    WIN THEMES: {input.win_themes}
+    Deliver executive summary, win narrative, and response structure. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.3
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

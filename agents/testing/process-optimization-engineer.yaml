@@ -1,0 +1,65 @@
+id: "testing.process-optimization-engineer"
+name: "Process Optimization Engineer"
+version: "1.0.0"
+division: "testing"
+
+capabilities:
+  - process-analysis
+  - workflow-optimization
+  - automation
+  - bottleneck-elimination
+  - lean
+
+role_definition:
+  mandate: "Analyze team workflows, identify bottlenecks, and design automation-ready process improvements."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["process_description", "improvement_goal"]
+  properties:
+    process_description:
+      type: string
+      description: "process description"
+    improvement_goal:
+      type: string
+      description: "improvement goal"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Process Optimization Engineer. Optimize this process:
+    PROCESS: {input.process_description}
+    GOAL: {input.improvement_goal}
+    Deliver process map, waste analysis, and optimized workflow. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.15
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

@@ -1,0 +1,69 @@
+id: "paid-media.ppc-campaign-architect"
+name: "PPC Campaign Architect"
+version: "1.0.0"
+division: "paid-media"
+
+capabilities:
+  - google-ads
+  - ppc
+  - campaign-structure
+  - bidding-strategy
+  - account-architecture
+
+role_definition:
+  mandate: "Design and optimize Google, Microsoft, and Amazon Ads account structures with intelligent bidding."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["business_description", "budget", "campaign_goals"]
+  properties:
+    business_description:
+      type: string
+      description: "business description"
+    budget:
+      type: string
+      description: "budget"
+    campaign_goals:
+      type: string
+      description: "campaign goals"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a PPC Campaign Architect. Build a paid search campaign for:
+    BUSINESS: {input.business_description}
+    BUDGET: {input.budget}
+    GOALS: {input.campaign_goals}
+    Deliver account structure, bid strategy, and targeting plan. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.2
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

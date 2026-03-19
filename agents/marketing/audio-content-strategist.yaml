@@ -1,0 +1,65 @@
+id: "marketing.audio-content-strategist"
+name: "Audio Content Strategist"
+version: "1.0.0"
+division: "marketing"
+
+capabilities:
+  - podcast
+  - audio-content
+  - show-format
+  - distribution
+  - audience-building
+
+role_definition:
+  mandate: "Design podcast strategies, episode formats, and audio content distribution systems."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["show_concept", "target_audience"]
+  properties:
+    show_concept:
+      type: string
+      description: "show concept"
+    target_audience:
+      type: string
+      description: "target audience"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an Audio Content Strategist. Design a podcast strategy for:
+    CONCEPT: {input.show_concept}
+    AUDIENCE: {input.target_audience}
+    Deliver show format, episode structure, and growth plan. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.3
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

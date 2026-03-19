@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/syndicate-banner.png" alt="SYNDICATE AI" width="100%" />
+<img src="docs/assets/syndicate-banner.svg" alt="SYNDICATE AI" width="100%" />
 
 # SYNDICATE AI
 
@@ -175,58 +175,172 @@ steps:
 
 ## Agent Catalog
 
-SYNDICATE AI ships with **30+ production agents** across 8 divisions. All renamed from vague titles to professional designations.
+SYNDICATE AI ships with **105 production agents** across 12 divisions. Every agent is a typed YAML contract with defined inputs, outputs, failure handlers, and success assertions — not a markdown persona.
 
-### Engineering Division
-
-| Agent ID | Role | Capabilities |
-|---|---|---|
-| `engineering.distributed-systems-architect` | Distributed Systems Architect | system-design, api-contracts, data-modeling, risk-analysis |
-| `engineering.ui-engineer` | UI Engineer | react, vue, angular, css-systems, core-web-vitals |
-| `engineering.principal-software-engineer` | Principal Software Engineer | laravel, livewire, advanced-patterns, architecture |
-| `engineering.platform-reliability-engineer` | Platform Reliability Engineer | ci-cd, kubernetes, docker, cloud-infra |
-| `engineering.ml-systems-engineer` | ML Systems Engineer | model-deployment, pipelines, embeddings, fine-tuning |
-| `engineering.appsec-architect` | Application Security Architect | threat-modeling, secure-code-review, sast, pen-testing |
-| `engineering.mobile-platform-engineer` | Mobile Platform Engineer | ios, android, react-native, flutter |
-| `engineering.sre-commander` | Site Reliability Commander | incident-management, post-mortems, on-call |
-| `engineering.poc-engineer` | Proof-of-Concept Engineer | rapid-prototyping, mvp, hackathon |
-| `engineering.docs-engineer` | Developer Documentation Engineer | api-docs, tutorials, runbooks |
-
-### Design Division
+### Engineering Division (21 agents)
 
 | Agent ID | Role | Capabilities |
 |---|---|---|
-| `design.visual-systems-designer` | Visual Systems Designer | component-libraries, design-systems, figma |
-| `design.user-intelligence-analyst` | User Intelligence Analyst | user-testing, behavioral-analysis, research |
-| `design.design-systems-architect` | Design Systems Architect | css-architecture, token-systems, implementation |
-| `design.brand-identity-strategist` | Brand Identity Strategist | brand-strategy, identity, positioning |
-| `design.interaction-experience-designer` | Interaction Experience Designer | micro-interactions, animations, gamification, delight |
+| `engineering.distributed-systems-architect` | Distributed Systems Architect | system-design, api-contracts, data-modeling, scalability, risk-analysis |
+| `engineering.ui-engineer` | UI Engineer | react, vue, typescript, css-systems, core-web-vitals, accessibility |
+| `engineering.principal-software-engineer` | Principal Software Engineer | laravel, livewire, advanced-patterns, clean-architecture |
+| `engineering.platform-reliability-engineer` | Platform Reliability Engineer | ci-cd, kubernetes, docker, terraform, cloud-infra |
+| `engineering.ml-systems-engineer` | ML Systems Engineer | ml-models, model-deployment, ai-pipelines, embeddings, fine-tuning |
+| `engineering.appsec-architect` | Application Security Architect | threat-modeling, secure-code-review, sast, owasp, pen-testing |
+| `engineering.mobile-platform-engineer` | Mobile Platform Engineer | ios, android, react-native, flutter, app-store |
+| `engineering.sre-commander` | Site Reliability Commander | incident-management, post-mortems, on-call, runbooks |
+| `engineering.poc-engineer` | Proof-of-Concept Engineer | rapid-prototyping, mvp, hackathon, fast-iteration |
+| `engineering.docs-engineer` | Developer Documentation Engineer | api-docs, tutorials, runbooks, openapi |
+| `engineering.code-quality-engineer` | Code Quality Engineer | code-review, static-analysis, refactoring, security-review |
+| `engineering.data-pipeline-engineer` | Data Pipeline Engineer | etl, spark, kafka, dbt, airflow |
+| `engineering.database-performance-engineer` | Database Performance Engineer | query-tuning, indexing, postgresql, schema-design |
+| `engineering.solutions-architect` | Solutions Architect | solution-design, system-integration, enterprise-architecture |
+| `engineering.site-reliability-engineer` | Site Reliability Engineer | slo, error-budgets, observability, capacity-planning |
+| `engineering.threat-detection-engineer` | Threat Detection Engineer | siem, threat-hunting, attck-mapping, detection-engineering |
+| `engineering.firmware-engineer` | Embedded Firmware Engineer | embedded, rtos, esp32, stm32, iot, bare-metal |
+| `engineering.smart-contract-engineer` | Smart Contract Engineer | solidity, evm, defi, gas-optimization |
+| `engineering.llm-optimization-architect` | LLM Optimization Architect | llm-routing, cost-optimization, model-selection, ai-infrastructure |
+| `engineering.version-control-specialist` | Version Control Specialist | git-workflow, branching-strategy, release-management |
+| `engineering.ai-data-quality-engineer` | AI Data Quality Engineer | data-quality, ml-data, data-validation, bias-detection |
 
-### Marketing Division
+### Design Division (8 agents)
 
 | Agent ID | Role | Capabilities |
 |---|---|---|
-| `marketing.growth-systems-engineer` | Growth Systems Engineer | acquisition, viral-loops, conversion-optimization |
+| `design.visual-systems-designer` | Visual Systems Designer | component-libraries, design-systems, figma, visual-design |
+| `design.user-intelligence-analyst` | User Intelligence Analyst | user-research, usability-testing, behavioral-analysis, jtbd |
+| `design.design-systems-architect` | Design Systems Architect | css-architecture, design-tokens, accessibility |
+| `design.brand-identity-strategist` | Brand Identity Strategist | brand-strategy, identity, positioning, brand-voice |
+| `design.interaction-experience-designer` | Interaction Experience Designer | micro-interactions, animations, gamification, delight-engineering |
+| `design.visual-narrative-director` | Visual Narrative Director | visual-storytelling, multimedia, data-visualization, infographics |
+| `design.ai-image-strategist` | AI Image Strategist | ai-image-generation, prompt-engineering, midjourney, dall-e |
+| `design.inclusive-design-specialist` | Inclusive Design Specialist | inclusive-design, representation, bias-mitigation, a11y |
+
+### Marketing Division (13 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `marketing.growth-systems-engineer` | Growth Systems Engineer | user-acquisition, viral-loops, conversion-optimization, a-b-testing |
 | `marketing.organic-search-engineer` | Organic Search Engineer | technical-seo, aeo, schema-markup, link-building |
-| `marketing.content-systems-strategist` | Content Systems Strategist | editorial-calendars, multi-platform, brand-storytelling |
-| `marketing.community-growth-specialist` | Community Growth Specialist | reddit, forums, authentic-engagement |
-| `marketing.social-authority-strategist` | Social Authority Strategist | twitter, linkedin, thought-leadership |
+| `marketing.content-systems-strategist` | Content Systems Strategist | content-strategy, editorial-calendar, brand-storytelling |
+| `marketing.social-media-architect` | Social Media Architect | social-strategy, campaign-design, platform-selection |
+| `marketing.social-authority-strategist` | Social Authority Strategist | thought-leadership, twitter, linkedin, personal-brand |
+| `marketing.visual-social-strategist` | Visual Social Strategist | instagram, visual-content, aesthetic-direction, reels |
+| `marketing.short-form-video-strategist` | Short-Form Video Strategist | tiktok, reels, viral-content, algorithm-optimization |
+| `marketing.community-growth-specialist` | Community Growth Specialist | community-building, reddit, authentic-engagement |
+| `marketing.app-store-optimization-engineer` | App Store Optimization Engineer | aso, app-store, google-play, conversion-optimization |
+| `marketing.b2b-content-strategist` | B2B Content Strategist | linkedin, b2b-content, thought-leadership, demand-gen |
+| `marketing.audio-content-strategist` | Audio Content Strategist | podcast, audio-content, show-format, distribution |
+| `marketing.ai-citation-engineer` | AI Citation Engineer | aeo, ai-citation, llm-optimization, answer-engine |
+| `marketing.book-publishing-strategist` | Book Publishing Strategist | book-writing, long-form-content, publishing, narrative-structure |
 
-### Product · PM · Testing · Support
+### Paid Media Division (7 agents)
 
-| Agent ID | Role | Division |
+| Agent ID | Role | Capabilities |
 |---|---|---|
-| `product.market-intelligence-analyst` | Market Intelligence Analyst | product |
-| `product.backlog-architect` | Product Backlog Architect | product |
-| `product.voc-analyst` | Voice of Customer Analyst | product |
-| `pm.program-director` | Program Director | pm |
-| `pm.delivery-lead` | Delivery Lead | pm |
-| `pm.scope-governance-manager` | Scope Governance Manager | pm |
-| `testing.qa-verification-engineer` | QA Verification Engineer | testing |
-| `testing.production-readiness-auditor` | Production Readiness Auditor | testing |
-| `support.customer-success-engineer` | Customer Success Engineer | support |
-| `support.bi-analyst` | Business Intelligence Analyst | support |
-| `orchestration.workflow-controller` | Workflow Execution Controller | orchestration |
+| `paid-media.ppc-campaign-architect` | PPC Campaign Architect | google-ads, ppc, campaign-structure, bidding-strategy |
+| `paid-media.search-intelligence-analyst` | Search Intelligence Analyst | search-query-analysis, negative-keywords, intent-mapping |
+| `paid-media.account-performance-auditor` | Account Performance Auditor | account-audit, performance-analysis, competitive-analysis |
+| `paid-media.conversion-tracking-engineer` | Conversion Tracking Engineer | gtm, ga4, conversion-tracking, capi, server-side-tagging |
+| `paid-media.ad-creative-strategist` | Ad Creative Strategist | ad-copy, rsa, meta-ads, performance-max, copy-testing |
+| `paid-media.programmatic-media-buyer` | Programmatic Media Buyer | programmatic, dsp, display, abm |
+| `paid-media.paid-social-architect` | Paid Social Architect | meta-ads, linkedin-ads, tiktok-ads, audience-strategy |
+
+### Product Division (5 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `product.product-manager` | Product Manager | product-strategy, prd, roadmap, stakeholder-alignment |
+| `product.market-intelligence-analyst` | Market Intelligence Analyst | market-research, competitive-analysis, trend-identification |
+| `product.backlog-architect` | Product Backlog Architect | sprint-planning, prioritization, backlog-management, rice-scoring |
+| `product.voc-analyst` | Voice of Customer Analyst | user-feedback, voc, insight-synthesis, churn-analysis |
+| `product.behavioral-design-engineer` | Behavioral Design Engineer | behavioral-psychology, nudge-design, gamification, engagement |
+
+### Project Management Division (6 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `pm.program-director` | Program Director | portfolio-management, resource-allocation, strategic-alignment |
+| `pm.delivery-lead` | Delivery Lead | project-coordination, timeline-management, risk-mitigation |
+| `pm.operations-excellence-manager` | Operations Excellence Manager | process-optimization, operational-efficiency, team-productivity |
+| `pm.experiment-lifecycle-manager` | Experiment Lifecycle Manager | a-b-testing, experiment-design, hypothesis-validation |
+| `pm.scope-governance-manager` | Scope Governance Manager | scope-management, task-decomposition, estimation |
+| `pm.delivery-process-engineer` | Delivery Process Engineer | jira, git-workflow, delivery-process, traceability |
+
+### Sales Division (8 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `sales.outbound-pipeline-architect` | Outbound Pipeline Architect | outbound, prospecting, icp-targeting, sequences |
+| `sales.discovery-methodology-coach` | Discovery Methodology Coach | discovery, spin, gap-selling, sandler, qualification |
+| `sales.deal-qualification-strategist` | Deal Qualification Strategist | meddpicc, deal-strategy, competitive-positioning |
+| `sales.presales-solutions-engineer` | Presales Solutions Engineer | presales, technical-demos, poc-scoping, battlecards |
+| `sales.proposal-narrative-strategist` | Proposal Narrative Strategist | rfp-response, proposals, win-themes, narrative-structure |
+| `sales.revenue-intelligence-analyst` | Revenue Intelligence Analyst | forecasting, pipeline-health, deal-velocity, revenue-ops |
+| `sales.account-expansion-strategist` | Account Expansion Strategist | account-expansion, land-and-expand, qbr, nrr |
+| `sales.sales-performance-coach` | Sales Performance Coach | sales-coaching, call-review, rep-development |
+
+### Testing Division (8 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `testing.production-readiness-auditor` | Production Readiness Auditor | quality-audit, evidence-based-assessment, security-checklist |
+| `testing.qa-verification-engineer` | QA Verification Engineer | ui-testing, visual-qa, screenshot-verification |
+| `testing.test-intelligence-analyst` | Test Intelligence Analyst | test-analysis, quality-metrics, coverage-reporting |
+| `testing.performance-benchmark-engineer` | Performance Benchmark Engineer | performance-testing, load-testing, k6, lighthouse |
+| `testing.api-contract-tester` | API Contract Tester | api-testing, contract-testing, integration-testing |
+| `testing.technology-evaluation-analyst` | Technology Evaluation Analyst | technology-evaluation, build-vs-buy, vendor-analysis |
+| `testing.process-optimization-engineer` | Process Optimization Engineer | process-analysis, workflow-optimization, automation |
+| `testing.accessibility-compliance-auditor` | Accessibility Compliance Auditor | wcag, accessibility-audit, screen-reader, aria |
+
+### Support Division (6 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `support.customer-success-engineer` | Customer Success Engineer | customer-service, issue-resolution, escalation-handling |
+| `support.bi-analyst` | Business Intelligence Analyst | business-intelligence, dashboards, kpi-tracking |
+| `support.financial-intelligence-analyst` | Financial Intelligence Analyst | financial-analysis, budget-modeling, cash-flow |
+| `support.infrastructure-reliability-engineer` | Infrastructure Reliability Engineer | infrastructure, monitoring, reliability |
+| `support.regulatory-counsel` | Regulatory Compliance Counsel | compliance, gdpr, hipaa, soc-2, pci-dss |
+| `support.executive-communications-specialist` | Executive Communications Specialist | executive-communication, c-suite, strategic-summaries |
+
+### Specialized Division (12 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `specialized.compliance-certification-auditor` | Compliance Certification Auditor | soc-2, iso-27001, hipaa, pci-dss, certification |
+| `specialized.smart-contract-security-auditor` | Smart Contract Security Auditor | smart-contract-audit, solidity, exploit-analysis |
+| `specialized.developer-relations-engineer` | Developer Relations Engineer | devrel, community-building, developer-experience |
+| `specialized.ml-model-quality-analyst` | ML Model Quality Analyst | ml-audit, model-bias, model-interpretability |
+| `specialized.workflow-automation-architect` | Workflow Automation Architect | workflow-automation, n8n, zapier, make |
+| `specialized.mcp-integration-engineer` | MCP Integration Engineer | mcp, model-context-protocol, ai-integration |
+| `specialized.crm-systems-architect` | CRM Systems Architect | salesforce, crm, apex, flow, data-model |
+| `specialized.global-market-strategist` | Global Market Strategist | global-strategy, market-entry, localization |
+| `specialized.supply-chain-optimization-strategist` | Supply Chain Optimization Strategist | supply-chain, logistics, vendor-management |
+| `specialized.talent-acquisition-specialist` | Talent Acquisition Specialist | recruitment, talent-acquisition, interview-design |
+| `specialized.learning-experience-designer` | Learning Experience Designer | corporate-training, e-learning, curriculum-design |
+| `specialized.agent-identity-architect` | Agent Identity Architect | agent-identity, authentication, trust-verification |
+
+### Game Development Division (10 agents)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `gamedev.game-systems-designer` | Game Systems Designer | game-design, gdd, gameplay-loops, economy-balancing |
+| `gamedev.level-design-architect` | Level Design Architect | level-design, pacing, encounter-design, environmental-storytelling |
+| `gamedev.narrative-systems-designer` | Narrative Systems Designer | narrative-design, branching-dialogue, lore, worldbuilding |
+| `gamedev.interactive-audio-engineer` | Interactive Audio Engineer | game-audio, fmod, wwise, adaptive-music, spatial-audio |
+| `gamedev.unity-systems-architect` | Unity Systems Architect | unity, scriptableobjects, dots, ecs, data-driven |
+| `gamedev.unreal-systems-engineer` | Unreal Systems Engineer | unreal, cpp, blueprints, gas, nanite |
+| `gamedev.godot-gameplay-engineer` | Godot Gameplay Engineer | godot, gdscript, signals, composition, godot-4 |
+| `gamedev.technical-art-director` | Technical Art Director | technical-art, shaders, vfx, lod-pipeline, hlsl |
+| `gamedev.blender-pipeline-engineer` | Blender Pipeline Engineer | blender, blender-python, add-on-development, 3d-pipeline |
+| `gamedev.roblox-systems-engineer` | Roblox Systems Engineer | roblox, luau, remote-events, datastore, server-authority |
+
+### Orchestration Division (1 agent)
+
+| Agent ID | Role | Capabilities |
+|---|---|---|
+| `orchestration.workflow-controller` | Workflow Execution Controller | dag-execution, state-management, retry-logic, escalation-routing |
 
 ---
 

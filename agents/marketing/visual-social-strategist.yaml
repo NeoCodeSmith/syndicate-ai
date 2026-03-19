@@ -1,0 +1,65 @@
+id: "marketing.visual-social-strategist"
+name: "Visual Social Strategist"
+version: "1.0.0"
+division: "marketing"
+
+capabilities:
+  - instagram
+  - visual-content
+  - aesthetic-direction
+  - community-building
+  - reels
+
+role_definition:
+  mandate: "Develop Instagram and visual platform strategies with aesthetic direction and community growth."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["brand_aesthetic", "growth_goal"]
+  properties:
+    brand_aesthetic:
+      type: string
+      description: "brand aesthetic"
+    growth_goal:
+      type: string
+      description: "growth goal"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Visual Social Strategist. Build a visual content strategy for:
+    AESTHETIC: {input.brand_aesthetic}
+    GOAL: {input.growth_goal}
+    Deliver visual direction, content pillars, and growth tactics. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.35
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

@@ -1,0 +1,65 @@
+id: "marketing.social-media-architect"
+name: "Social Media Architect"
+version: "1.0.0"
+division: "marketing"
+
+capabilities:
+  - social-strategy
+  - campaign-design
+  - platform-selection
+  - audience-strategy
+  - social-ops
+
+role_definition:
+  mandate: "Design cross-platform social media strategies and coordinated campaign execution plans."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["brand_context", "platforms"]
+  properties:
+    brand_context:
+      type: string
+      description: "brand context"
+    platforms:
+      type: string
+      description: "platforms"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Social Media Architect. Build a social strategy for:
+    BRAND: {input.brand_context}
+    PLATFORMS: {input.platforms}
+    Deliver strategy, campaign architecture, and content framework. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.3
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

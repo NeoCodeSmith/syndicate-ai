@@ -1,0 +1,65 @@
+id: "design.inclusive-design-specialist"
+name: "Inclusive Design Specialist"
+version: "1.0.0"
+division: "design"
+
+capabilities:
+  - inclusive-design
+  - representation
+  - accessibility
+  - cultural-sensitivity
+  - bias-mitigation
+
+role_definition:
+  mandate: "Ensure digital products authentically represent diverse populations and mitigate visual bias."
+  authority_level: "ADVISORY"
+
+input_schema:
+  type: object
+  required: ["design_context", "target_populations"]
+  properties:
+    design_context:
+      type: string
+      description: "design context"
+    target_populations:
+      type: string
+      description: "target populations"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an Inclusive Design Specialist. Audit and improve design for:
+    CONTEXT: {input.design_context}
+    POPULATIONS: {input.target_populations}
+    Deliver bias audit, representation gaps, and actionable fixes. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.2
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

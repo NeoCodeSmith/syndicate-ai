@@ -1,0 +1,65 @@
+id: "paid-media.account-performance-auditor"
+name: "Account Performance Auditor"
+version: "1.0.0"
+division: "paid-media"
+
+capabilities:
+  - account-audit
+  - paid-media
+  - performance-analysis
+  - competitive-analysis
+  - waste-elimination
+
+role_definition:
+  mandate: "Conduct comprehensive 200+ point paid media account audits with competitive benchmarking."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["account_summary", "audit_scope"]
+  properties:
+    account_summary:
+      type: string
+      description: "account summary"
+    audit_scope:
+      type: string
+      description: "audit scope"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an Account Performance Auditor. Audit the following account:
+    ACCOUNT: {input.account_summary}
+    SCOPE: {input.audit_scope}
+    Deliver structured audit findings by severity with fix priority. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

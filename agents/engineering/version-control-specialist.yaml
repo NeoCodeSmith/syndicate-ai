@@ -1,0 +1,64 @@
+id: "engineering.version-control-specialist"
+name: "Version Control Specialist"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - git-workflow
+  - branching-strategy
+  - release-management
+  - repository-governance
+
+role_definition:
+  mandate: "Design Git workflows, branching strategies, and repository governance for engineering teams."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["team_description", "workflow_requirements"]
+  properties:
+    team_description:
+      type: string
+      description: "team description"
+    workflow_requirements:
+      type: string
+      description: "workflow requirements"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Version Control Specialist. Design a Git workflow for:
+    TEAM: {input.team_description}
+    REQUIREMENTS: {input.workflow_requirements}
+    Deliver branching strategy, conventions, and automation hooks. Return JSON only.
+  max_tokens: 2048
+  temperature: 0.15
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

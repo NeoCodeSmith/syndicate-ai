@@ -1,0 +1,67 @@
+id: "engineering.data-pipeline-engineer"
+name: "Data Pipeline Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - data-pipelines
+  - etl
+  - spark
+  - kafka
+  - dbt
+  - airflow
+  - data-engineering
+
+role_definition:
+  mandate: "Design and build scalable data ingestion, transformation, and storage pipelines."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["pipeline_description", "data_sources"]
+  properties:
+    pipeline_description:
+      type: string
+      description: "pipeline description"
+    data_sources:
+      type: string
+      description: "data sources"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Data Pipeline Engineer. Design a data pipeline for:
+    PIPELINE: {input.pipeline_description}
+    SOURCES: {input.data_sources}
+    Deliver architecture, schema, and implementation plan. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.15
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

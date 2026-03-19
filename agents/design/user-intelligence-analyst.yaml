@@ -1,0 +1,65 @@
+id: "design.user-intelligence-analyst"
+name: "User Intelligence Analyst"
+version: "1.0.0"
+division: "design"
+
+capabilities:
+  - user-research
+  - usability-testing
+  - behavioral-analysis
+  - user-interviews
+  - jtbd
+
+role_definition:
+  mandate: "Plan and synthesize user research to generate actionable insights about user behavior and needs."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["research_goal", "user_segment"]
+  properties:
+    research_goal:
+      type: string
+      description: "research goal"
+    user_segment:
+      type: string
+      description: "user segment"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a User Intelligence Analyst. Conduct a research plan for:
+    GOAL: {input.research_goal}
+    SEGMENT: {input.user_segment}
+    Deliver research plan, methodology, and synthesis framework. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.2
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

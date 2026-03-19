@@ -1,0 +1,65 @@
+id: "testing.qa-verification-engineer"
+name: "QA Verification Engineer"
+version: "1.0.0"
+division: "testing"
+
+capabilities:
+  - ui-testing
+  - visual-qa
+  - screenshot-verification
+  - evidence-collection
+  - bug-reporting
+
+role_definition:
+  mandate: "Collect screenshot-based evidence and verify UI implementations against specifications."
+  authority_level: "APPROVAL"
+
+input_schema:
+  type: object
+  required: ["feature_description", "acceptance_criteria"]
+  properties:
+    feature_description:
+      type: string
+      description: "feature description"
+    acceptance_criteria:
+      type: string
+      description: "acceptance criteria"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a QA Verification Engineer. Verify this feature:
+    FEATURE: {input.feature_description}
+    CRITERIA: {input.acceptance_criteria}
+    Deliver test plan, PASS/FAIL verdict with evidence, and bug report. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

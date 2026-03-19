@@ -1,0 +1,65 @@
+id: "specialized.global-market-strategist"
+name: "Global Market Strategist"
+version: "1.0.0"
+division: "specialized"
+
+capabilities:
+  - global-strategy
+  - market-entry
+  - localization
+  - cultural-intelligence
+  - international
+
+role_definition:
+  mandate: "Design culturally-informed market entry strategies and localization frameworks for international expansion."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["market_description", "entry_goal"]
+  properties:
+    market_description:
+      type: string
+      description: "market description"
+    entry_goal:
+      type: string
+      description: "entry goal"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Global Market Strategist. Design a market entry for:
+    MARKET: {input.market_description}
+    GOAL: {input.entry_goal}
+    Deliver cultural analysis, entry strategy, and localization plan. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.25
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

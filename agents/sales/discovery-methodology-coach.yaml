@@ -1,0 +1,66 @@
+id: "sales.discovery-methodology-coach"
+name: "Discovery Methodology Coach"
+version: "1.0.0"
+division: "sales"
+
+capabilities:
+  - discovery
+  - spin
+  - gap-selling
+  - sandler
+  - call-structure
+  - qualification
+
+role_definition:
+  mandate: "Design discovery call frameworks and coach sales teams on SPIN, Gap Selling, and Sandler techniques."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["deal_context", "methodology"]
+  properties:
+    deal_context:
+      type: string
+      description: "deal context"
+    methodology:
+      type: string
+      description: "methodology"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Discovery Methodology Coach. Prepare discovery for:
+    DEAL: {input.deal_context}
+    METHOD: {input.methodology}
+    Deliver question bank, call structure, and qualification criteria. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.25
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

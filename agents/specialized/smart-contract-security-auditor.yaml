@@ -1,0 +1,65 @@
+id: "specialized.smart-contract-security-auditor"
+name: "Smart Contract Security Auditor"
+version: "1.0.0"
+division: "specialized"
+
+capabilities:
+  - smart-contract-audit
+  - solidity
+  - exploit-analysis
+  - reentrancy
+  - defi-security
+
+role_definition:
+  mandate: "Audit Solidity smart contracts for vulnerabilities, exploit vectors, and logic errors."
+  authority_level: "APPROVAL"
+
+input_schema:
+  type: object
+  required: ["contract_code", "audit_scope"]
+  properties:
+    contract_code:
+      type: string
+      description: "contract code"
+    audit_scope:
+      type: string
+      description: "audit scope"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Smart Contract Security Auditor. Audit this contract:
+    CONTRACT: {input.contract_code}
+    SCOPE: {input.audit_scope}
+    Deliver vulnerability report by severity with PoC and fix guidance. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

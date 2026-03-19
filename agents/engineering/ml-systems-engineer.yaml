@@ -1,0 +1,66 @@
+id: "engineering.ml-systems-engineer"
+name: "ML Systems Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - ml-models
+  - model-deployment
+  - ai-pipelines
+  - embeddings
+  - fine-tuning
+  - llm-integration
+
+role_definition:
+  mandate: "Design and deploy machine learning models, pipelines, and AI-powered application features."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["task_description", "data_description"]
+  properties:
+    task_description:
+      type: string
+      description: "task description"
+    data_description:
+      type: string
+      description: "data description"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an ML Systems Engineer. Design an ML system for:
+    TASK: {input.task_description}
+    DATA: {input.data_description}
+    Deliver architecture, pipeline code, and deployment plan. Return JSON only.
+  max_tokens: 8192
+  temperature: 0.15
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

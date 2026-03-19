@@ -1,0 +1,65 @@
+id: "marketing.social-authority-strategist"
+name: "Social Authority Strategist"
+version: "1.0.0"
+division: "marketing"
+
+capabilities:
+  - thought-leadership
+  - twitter
+  - linkedin
+  - personal-brand
+  - social-engagement
+
+role_definition:
+  mandate: "Build thought leadership and real-time engagement on Twitter/X and LinkedIn."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["brand_voice", "topics"]
+  properties:
+    brand_voice:
+      type: string
+      description: "brand voice"
+    topics:
+      type: string
+      description: "topics"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Social Authority Strategist. Build authority presence for:
+    VOICE: {input.brand_voice}
+    TOPICS: {input.topics}
+    Deliver engagement strategy, content hooks, and posting cadence. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.35
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

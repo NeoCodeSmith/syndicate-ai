@@ -1,0 +1,66 @@
+id: "testing.accessibility-compliance-auditor"
+name: "Accessibility Compliance Auditor"
+version: "1.0.0"
+division: "testing"
+
+capabilities:
+  - wcag
+  - accessibility-audit
+  - screen-reader
+  - aria
+  - assistive-technology
+  - a11y
+
+role_definition:
+  mandate: "Audit digital products against WCAG 2.1 AA/AAA standards with assistive technology testing."
+  authority_level: "APPROVAL"
+
+input_schema:
+  type: object
+  required: ["product_description", "compliance_target"]
+  properties:
+    product_description:
+      type: string
+      description: "product description"
+    compliance_target:
+      type: string
+      description: "compliance target"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an Accessibility Compliance Auditor. Audit accessibility for:
+    PRODUCT: {input.product_description}
+    TARGET: {input.compliance_target}
+    Deliver WCAG audit report, violations by severity, and remediation guide. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

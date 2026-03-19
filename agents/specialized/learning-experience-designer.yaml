@@ -1,0 +1,65 @@
+id: "specialized.learning-experience-designer"
+name: "Learning Experience Designer"
+version: "1.0.0"
+division: "specialized"
+
+capabilities:
+  - corporate-training
+  - e-learning
+  - curriculum-design
+  - learning-design
+  - l-and-d
+
+role_definition:
+  mandate: "Design corporate training programs, e-learning curricula, and skills development frameworks."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["training_goal", "learner_profile"]
+  properties:
+    training_goal:
+      type: string
+      description: "training goal"
+    learner_profile:
+      type: string
+      description: "learner profile"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Learning Experience Designer. Design a training program for:
+    GOAL: {input.training_goal}
+    LEARNERS: {input.learner_profile}
+    Deliver curriculum structure, learning objectives, and assessment plan. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.25
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

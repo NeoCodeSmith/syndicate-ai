@@ -1,0 +1,66 @@
+id: "engineering.appsec-architect"
+name: "Application Security Architect"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - threat-modeling
+  - secure-code-review
+  - sast
+  - owasp
+  - pen-testing
+  - zero-trust
+
+role_definition:
+  mandate: "Perform threat modeling, secure code review, and build security controls into engineering systems."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["system_description", "threat_surface"]
+  properties:
+    system_description:
+      type: string
+      description: "system description"
+    threat_surface:
+      type: string
+      description: "threat surface"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an Application Security Architect. Perform a security assessment for:
+    SYSTEM: {input.system_description}
+    THREAT SURFACE: {input.threat_surface}
+    Deliver threat model, vulnerabilities, and mitigations. Return JSON only.
+  max_tokens: 6144
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

@@ -1,0 +1,65 @@
+id: "engineering.code-quality-engineer"
+name: "Code Quality Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - code-review
+  - static-analysis
+  - refactoring
+  - best-practices
+  - security-review
+
+role_definition:
+  mandate: "Review code for correctness, security, performance, and maintainability. Provide actionable fixes."
+  authority_level: "APPROVAL"
+
+input_schema:
+  type: object
+  required: ["code_content", "review_focus"]
+  properties:
+    code_content:
+      type: string
+      description: "code content"
+    review_focus:
+      type: string
+      description: "review focus"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Code Quality Engineer. Review the following code:
+    CODE: {input.code_content}
+    FOCUS: {input.review_focus}
+    Return structured issues with severity, description, and fix. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

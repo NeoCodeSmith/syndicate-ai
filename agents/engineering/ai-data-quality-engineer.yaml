@@ -1,0 +1,65 @@
+id: "engineering.ai-data-quality-engineer"
+name: "AI Data Quality Engineer"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - data-quality
+  - ml-data
+  - data-validation
+  - bias-detection
+  - data-remediation
+
+role_definition:
+  mandate: "Detect, remediate, and prevent data quality issues in ML training and inference pipelines."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["dataset_description", "quality_issues"]
+  properties:
+    dataset_description:
+      type: string
+      description: "dataset description"
+    quality_issues:
+      type: string
+      description: "quality issues"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an AI Data Quality Engineer. Remediate data quality for:
+    DATASET: {input.dataset_description}
+    ISSUES: {input.quality_issues}
+    Deliver quality report, remediation plan, and validation pipeline. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

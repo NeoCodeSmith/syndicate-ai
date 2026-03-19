@@ -1,0 +1,65 @@
+id: "sales.account-expansion-strategist"
+name: "Account Expansion Strategist"
+version: "1.0.0"
+division: "sales"
+
+capabilities:
+  - account-expansion
+  - land-and-expand
+  - qbr
+  - stakeholder-mapping
+  - nrr
+
+role_definition:
+  mandate: "Build land-and-expand playbooks, QBR structures, and stakeholder maps for NRR growth."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["account_description", "expansion_goal"]
+  properties:
+    account_description:
+      type: string
+      description: "account description"
+    expansion_goal:
+      type: string
+      description: "expansion goal"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an Account Expansion Strategist. Build an expansion plan for:
+    ACCOUNT: {input.account_description}
+    GOAL: {input.expansion_goal}
+    Deliver expansion map, QBR framework, and influence strategy. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.2
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

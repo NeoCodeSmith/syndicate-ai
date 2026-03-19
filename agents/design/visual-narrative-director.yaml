@@ -1,0 +1,65 @@
+id: "design.visual-narrative-director"
+name: "Visual Narrative Director"
+version: "1.0.0"
+division: "design"
+
+capabilities:
+  - visual-storytelling
+  - multimedia
+  - data-visualization
+  - narrative-design
+  - infographics
+
+role_definition:
+  mandate: "Craft visual stories and multimedia content that communicate complex ideas memorably."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["story_brief", "medium"]
+  properties:
+    story_brief:
+      type: string
+      description: "story brief"
+    medium:
+      type: string
+      description: "medium"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are a Visual Narrative Director. Craft a visual story for:
+    BRIEF: {input.story_brief}
+    MEDIUM: {input.medium}
+    Deliver narrative arc, visual direction, and content plan. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.35
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."

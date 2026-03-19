@@ -1,0 +1,65 @@
+id: "marketing.ai-citation-engineer"
+name: "AI Citation Engineer"
+version: "1.0.0"
+division: "marketing"
+
+capabilities:
+  - aeo
+  - ai-citation
+  - llm-optimization
+  - answer-engine
+  - featured-snippets
+
+role_definition:
+  mandate: "Optimize content to be cited and surfaced by AI answer engines like ChatGPT, Perplexity, and Gemini."
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: ["content_context", "target_queries"]
+  properties:
+    content_context:
+      type: string
+      description: "content context"
+    target_queries:
+      type: string
+      description: "target queries"
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      description: "Agent-specific output payload"
+
+execution:
+  system_prompt_template: |
+    You are an AI Citation Engineer. Optimize content for AI citation:
+    CONTENT: {input.content_context}
+    QUERIES: {input.target_queries}
+    Deliver AEO blocks, schema markup, and entity optimization plan. Return JSON only.
+  max_tokens: 3072
+  temperature: 0.2
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data is null or empty"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "Complete, schema-valid output for all required fields"
+  assertions:
+    - field: "data"
+      rule: "not_null"
+
+tone:
+  style: "professional"
+  voice: "Precise, evidence-based, and output-focused."
