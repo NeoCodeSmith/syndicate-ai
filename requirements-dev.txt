@@ -10,7 +10,7 @@ httpx==0.28.1
 factory-boy==3.3.1
 
 # ─── Linting / Formatting ───────────────────────────────────────────────────
-ruff==0.8.4
+ruff==0.15.6
 mypy==1.13.0
 types-PyYAML==6.0.12.20240917
 types-redis==4.6.0.20241004

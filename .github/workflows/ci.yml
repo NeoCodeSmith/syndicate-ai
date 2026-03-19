@@ -31,7 +31,7 @@ jobs:
           cache: pip
 
       - name: Install dev dependencies
-        run: pip install ruff mypy types-PyYAML types-redis pydantic pyyaml
+        run: pip install ruff==0.15.6 mypy pyyaml types-PyYAML types-redis pydantic
 
       - name: Lint with ruff
         run: ruff check src/ agents/ --output-format=github
