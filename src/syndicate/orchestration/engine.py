@@ -2,9 +2,9 @@
 SYNDICATE AI — Orchestration Engine
 File: src/syndicate/orchestration/engine.py
 
-Deterministic DAG executor. Replaces markdown-based orchestration with
-a real state machine that advances workflow steps, handles retries with
-exponential backoff, and escalates on terminal failures.
+Deterministic DAG executor. Manages all workflow state transitions,
+dispatches Celery tasks, handles retries with exponential backoff,
+and escalates on terminal failures.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from syndicate.core.models import (
     WorkflowDefinition,
     WorkflowExecution,
     WorkflowStatus,
+    WorkflowStep,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,10 +33,14 @@ MAX_STEPS_PER_WORKFLOW = 100
 
 
 class OrchestrationEngine:
-    """Parses workflow DAGs, dispatches Celery tasks, and enforces state transitions."""
+    """Parses workflow DAGs, dispatches Celery tasks, enforces state transitions."""
 
     def __init__(
-        self, celery_app: Celery, redis_client: redis.Redis, memory_store: Any, agent_registry: Any
+        self,
+        celery_app: Celery,
+        redis_client: redis.Redis[str],
+        memory_store: Any,
+        agent_registry: Any,
     ) -> None:
         self._celery = celery_app
         self._redis = redis_client
@@ -67,7 +72,10 @@ class OrchestrationEngine:
         return execution
 
     def on_step_completed(
-        self, execution_id: str, step_name: str, output: AgentOutput
+        self,
+        execution_id: str,
+        step_name: str,
+        output: AgentOutput,
     ) -> OrchestratorDecision:
         execution = self._load(execution_id)
         workflow_def = self._load_def(execution.workflow_definition_id)
@@ -91,7 +99,7 @@ class OrchestrationEngine:
         self._memory.set(execution_id, f"step:{step_name}:output", output.data)
         self._persist(execution)
 
-        if not step_def.on_success:
+        if not step_def or not step_def.on_success:
             return self._complete(execution)
 
         next_def = self._get_step(workflow_def, step_def.on_success)
@@ -120,8 +128,15 @@ class OrchestrationEngine:
 
     # ── Private ─────────────────────────────────────────────────────────────
 
-    def _handle_failure(self, execution, workflow_def, step_def, step_exec, error):
-        agent_def = self._registry.get(step_def.agent_id)
+    def _handle_failure(
+        self,
+        execution: WorkflowExecution,
+        workflow_def: WorkflowDefinition,
+        step_def: WorkflowStep | None,
+        step_exec: StepExecution,
+        error: str,
+    ) -> OrchestratorDecision:
+        agent_def = self._registry.get(step_def.agent_id) if step_def else None
         max_retries = agent_def.failure.max_retries if agent_def else 3
         step_exec.error_message = error
 
@@ -130,10 +145,15 @@ class OrchestrationEngine:
             step_exec.status = StepStatus.RETRYING
             step_exec.attempt += 1
             self._persist(execution)
-            resolved = self._resolve_input(execution, workflow_def, step_def)
-            self._dispatch(execution, workflow_def, step_def, resolved, countdown=backoff)
+            if step_def:
+                resolved = self._resolve_input(execution, workflow_def, step_def)
+                self._dispatch(execution, workflow_def, step_def, resolved, countdown=backoff)
             logger.warning(
-                f"Retrying '{step_def.name}' attempt {step_exec.attempt}/{max_retries} in {backoff}s"
+                "Retrying '%s' attempt %d/%d in %ds",
+                step_def.name if step_def else "unknown",
+                step_exec.attempt,
+                max_retries,
+                backoff,
             )
             return OrchestratorDecision.RETRY_STEP
 
@@ -141,10 +161,17 @@ class OrchestrationEngine:
         self._persist(execution)
         if step_def and step_def.on_failure == "ABORT":
             return self._abort(execution, f"Terminal failure: {error}")
-        logger.error(f"Step '{step_def.name}' escalated after {max_retries} retries")
+        logger.error("Step escalated after %d retries", max_retries)
         return OrchestratorDecision.ESCALATE
 
-    def _dispatch(self, execution, workflow_def, step_def, input_data, countdown=0):
+    def _dispatch(
+        self,
+        execution: WorkflowExecution,
+        workflow_def: WorkflowDefinition,
+        step_def: WorkflowStep,
+        input_data: dict[str, Any],
+        countdown: int = 0,
+    ) -> StepExecution:
         step_exec = StepExecution(
             execution_id=execution.id,
             workflow_definition_id=workflow_def.id,
@@ -167,11 +194,16 @@ class OrchestrationEngine:
             },
             countdown=countdown,
         )
-        logger.info(f"Dispatched '{step_def.name}' → '{step_def.agent_id}'")
+        logger.info("Dispatched '%s' → '%s'", step_def.name, step_def.agent_id)
         return step_exec
 
-    def _resolve_input(self, execution, workflow_def, step_def) -> dict[str, Any]:
-        result = dict(step_def.input_static)
+    def _resolve_input(
+        self,
+        execution: WorkflowExecution,
+        workflow_def: WorkflowDefinition,  # noqa: ARG002
+        step_def: WorkflowStep,
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = dict(step_def.input_static)
         for m in step_def.input_mappings:
             src = self._memory.get(execution.id, f"step:{m.from_step}:output")
             if src:
@@ -181,19 +213,19 @@ class OrchestrationEngine:
         result["_context"] = execution.context
         return result
 
-    def _complete(self, execution):
+    def _complete(self, execution: WorkflowExecution) -> OrchestratorDecision:
         execution.status = WorkflowStatus.COMPLETED
         self._persist(execution)
         logger.info("Workflow completed", extra={"id": execution.id})
         return OrchestratorDecision.COMPLETE_WORKFLOW
 
-    def _abort(self, execution, reason):
+    def _abort(self, execution: WorkflowExecution, reason: str) -> OrchestratorDecision:
         execution.status = WorkflowStatus.ABORTED
         self._persist(execution)
-        logger.error(f"Workflow aborted: {reason}", extra={"id": execution.id})
+        logger.error("Workflow aborted: %s", reason, extra={"id": execution.id})
         return OrchestratorDecision.ABORT_WORKFLOW
 
-    def _persist(self, execution) -> None:
+    def _persist(self, execution: WorkflowExecution) -> None:
         self._redis.setex(f"execution:{execution.id}", 86400 * 7, execution.model_dump_json())
 
     def _load(self, execution_id: str) -> WorkflowExecution:
@@ -211,7 +243,7 @@ class OrchestrationEngine:
             raise ValueError(f"WorkflowDefinition {wf_def_id} not found")
         return WorkflowDefinition.model_validate_json(data)
 
-    def _get_step(self, wf: WorkflowDefinition, name: str):
+    def _get_step(self, wf: WorkflowDefinition, name: str) -> WorkflowStep | None:
         return next((s for s in wf.steps if s.name == name), None)
 
     def _get_step_exec(self, execution: WorkflowExecution, step_name: str) -> StepExecution:
@@ -220,17 +252,17 @@ class OrchestrationEngine:
             raise ValueError(f"StepExecution '{step_name}' not found")
         return s
 
-    def _nested_get(self, data, path):
-        cur = data
+    def _nested_get(self, data: dict[str, Any], path: str) -> Any:
+        cur: Any = data
         for p in path.split("."):
             if not isinstance(cur, dict):
                 return None
             cur = cur.get(p)
         return cur
 
-    def _nested_set(self, data, path, value) -> None:
+    def _nested_set(self, data: dict[str, Any], path: str, value: Any) -> None:
         parts = path.split(".")
-        cur = data
+        cur: dict[str, Any] = data
         for p in parts[:-1]:
             cur = cur.setdefault(p, {})
         cur[parts[-1]] = value

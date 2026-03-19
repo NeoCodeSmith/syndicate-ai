@@ -2,8 +2,8 @@
 SYNDICATE AI — Application Factory
 File: src/syndicate/app.py
 
-Central wiring point. All services are instantiated here as lazy singletons.
-Settings are loaded from environment variables via pydantic-settings.
+All services are lazy singletons loaded via getter functions.
+All configuration is sourced from environment variables / .env file.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 import redis as redis_module
 from openai import OpenAI
@@ -19,17 +20,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SETTINGS — all values from environment / .env file
-# ─────────────────────────────────────────────────────────────────────────────
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",  # silently ignore extra env vars
+        extra="ignore",
     )
 
     # LLM
@@ -54,7 +50,7 @@ class Settings(BaseSettings):
     def valid_api_keys(self) -> set[str]:
         return {k.strip() for k in self.syndicate_api_keys.split(",") if k.strip()}
 
-    # CORS — comma-separated list of allowed origins
+    # CORS
     cors_origins: str = "http://localhost:3000"
 
     @property
@@ -86,7 +82,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = False
 
-    # Flower / Grafana (used only in docker-compose)
+    # Flower / Grafana
     flower_user: str = "admin"
     flower_password: str = "change-me"
     grafana_admin_password: str = "change-me"
@@ -97,25 +93,23 @@ def get_settings() -> Settings:
     return Settings()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LAZY SINGLETONS
-# ─────────────────────────────────────────────────────────────────────────────
+# ── Lazy singletons ────────────────────────────────────────────────────────────
 
-_redis_client: redis_module.Redis | None = None
+_redis_client: redis_module.Redis[str] | None = None
 _llm_client: OpenAI | None = None
-_agent_registry = None
-_workflow_registry = None
-_memory_store = None
-_orchestration_engine = None
-_execution_engine = None
+_agent_registry: Any = None
+_workflow_registry: Any = None
+_memory_store: Any = None
+_orchestration_engine: Any = None
+_execution_engine: Any = None
 
 
-def get_redis() -> redis_module.Redis:
+def get_redis() -> redis_module.Redis[str]:
     global _redis_client
     if _redis_client is None:
         settings = get_settings()
         _redis_client = redis_module.from_url(settings.redis_url, decode_responses=True)
-    return _redis_client
+    return _redis_client  # type: ignore[return-value]
 
 
 def get_llm_client() -> OpenAI:
@@ -129,7 +123,7 @@ def get_llm_client() -> OpenAI:
     return _llm_client
 
 
-def get_agent_registry():  # type: ignore[return]
+def get_agent_registry() -> Any:
     global _agent_registry
     if _agent_registry is None:
         from syndicate.registry.agent_registry import AgentRegistry
@@ -139,7 +133,7 @@ def get_agent_registry():  # type: ignore[return]
     return _agent_registry
 
 
-def get_workflow_registry():  # type: ignore[return]
+def get_workflow_registry() -> Any:
     global _workflow_registry
     if _workflow_registry is None:
         from syndicate.registry.workflow_registry import WorkflowRegistry
@@ -149,7 +143,7 @@ def get_workflow_registry():  # type: ignore[return]
     return _workflow_registry
 
 
-def get_memory_store():  # type: ignore[return]
+def get_memory_store() -> Any:
     global _memory_store
     if _memory_store is None:
         from syndicate.memory.store import MemoryStore
@@ -158,7 +152,7 @@ def get_memory_store():  # type: ignore[return]
     return _memory_store
 
 
-def get_orchestration_engine():  # type: ignore[return]
+def get_orchestration_engine() -> Any:
     global _orchestration_engine
     if _orchestration_engine is None:
         from celery import current_app as celery_app
@@ -174,7 +168,7 @@ def get_orchestration_engine():  # type: ignore[return]
     return _orchestration_engine
 
 
-def get_execution_engine():  # type: ignore[return]
+def get_execution_engine() -> Any:
     global _execution_engine
     if _execution_engine is None:
         from syndicate.execution.engine import ExecutionEngine

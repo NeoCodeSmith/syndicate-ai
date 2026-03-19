@@ -2,8 +2,7 @@
 SYNDICATE AI — Execution Engine
 File: src/syndicate/execution/engine.py
 
-Handles LLM calls with typed I/O enforcement. Each agent invocation is
-isolated — no shared mutable state, full JSON output enforcement.
+Handles LLM calls with typed I/O enforcement. Each invocation is isolated.
 """
 
 from __future__ import annotations
@@ -29,7 +28,10 @@ class ExecutionEngine:
     """Calls LLM with rendered system prompt, parses JSON, validates schema."""
 
     def __init__(
-        self, agent_registry: Any, llm_client: OpenAI, model: str = "claude-opus-4-6"
+        self,
+        agent_registry: Any,
+        llm_client: OpenAI,
+        model: str = "claude-opus-4-6",
     ) -> None:
         self._registry = agent_registry
         self._llm = llm_client
@@ -40,7 +42,7 @@ class ExecutionEngine:
         execution_id: str,
         step_id: str,
         agent_id: str,
-        step_name: str,
+        step_name: str,  # noqa: ARG002
         input_data: dict[str, Any],
         attempt: int = 1,
     ) -> AgentOutput:
@@ -59,16 +61,18 @@ class ExecutionEngine:
                 messages=[
                     {
                         "role": "system",
-                        "content": system_prompt
-                        + "\n\nRESPOND ONLY WITH VALID JSON. No markdown, no explanation.",
+                        "content": (
+                            system_prompt
+                            + "\n\nRESPOND ONLY WITH VALID JSON. No markdown, no explanation."
+                        ),
                     },
                     {"role": "user", "content": json.dumps(input_data, indent=2)},
                 ],
                 max_tokens=agent_def.execution.max_tokens,
                 temperature=agent_def.execution.temperature,
             )
-        except Exception as exc:
-            logger.exception(f"LLM call failed for '{agent_id}'")
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("LLM call failed for '%s'", agent_id)
             return self._fail(execution_id, step_id, agent_id, str(exc))
 
         duration_ms = int(time.time() * 1000) - start
@@ -84,7 +88,7 @@ class ExecutionEngine:
             return self._fail(execution_id, step_id, agent_id, f"Schema violation: {err}")
 
         tokens = getattr(resp.usage, "total_tokens", 0)
-        data_payload = parsed.get("data", parsed)
+        data_payload: dict[str, Any] = parsed.get("data", parsed)
 
         return AgentOutput(
             agent_id=agent_id,
@@ -93,7 +97,10 @@ class ExecutionEngine:
             status=AgentOutputStatus.SUCCESS,
             data=data_payload,
             metadata=AgentOutputMetadata(
-                tokens_used=tokens, model=self._model, duration_ms=duration_ms, attempt=attempt
+                tokens_used=tokens,
+                model=self._model,
+                duration_ms=duration_ms,
+                attempt=attempt,
             ),
         )
 
@@ -108,9 +115,10 @@ class ExecutionEngine:
         if t.startswith("```"):
             lines = t.split("\n")
             t = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
-        return json.loads(t)
+        result: dict[str, Any] = json.loads(t)
+        return result
 
-    def _validate_schema(self, data: dict, schema: dict) -> str | None:
+    def _validate_schema(self, data: dict[str, Any], schema: dict[str, Any]) -> str | None:
         try:
             jsonschema.validate(instance=data, schema=schema)
             return None
@@ -119,7 +127,7 @@ class ExecutionEngine:
         except jsonschema.SchemaError as e:
             return f"Schema error: {e.message}"
 
-    def _fail(self, execution_id, step_id, agent_id, reason) -> AgentOutput:
+    def _fail(self, execution_id: str, step_id: str, agent_id: str, reason: str) -> AgentOutput:
         return AgentOutput(
             agent_id=agent_id,
             workflow_id=execution_id,
