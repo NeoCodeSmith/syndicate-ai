@@ -1,0 +1,53 @@
+id: "startup-mvp"
+name: "Startup MVP Pipeline"
+version: "1.0.0"
+description: "Full pipeline from market research through architecture, UI, SEO, and QA audit."
+initial_step: "market-analysis"
+
+context_schema:
+  type: object
+  required: [project_brief, target_market]
+  properties:
+    project_brief: { type: string }
+    target_market: { type: string }
+
+steps:
+  - name: "market-analysis"
+    agent_id: "product.market-intelligence-analyst"
+    input_static:
+      domain: "SaaS"
+    input_mappings:
+      - from_step: "_context"
+        from_field: "project_brief"
+        to_field: "research_focus"
+      - from_step: "_context"
+        from_field: "target_market"
+        to_field: "target_market"
+    on_success: "system-architecture"
+    on_failure: "ESCALATE"
+    timeout_seconds: 120
+
+  - name: "system-architecture"
+    agent_id: "engineering.distributed-systems-architect"
+    input_mappings:
+      - from_step: "market-analysis"
+        from_field: "market_summary"
+        to_field: "project_brief"
+    on_success: "qa-audit"
+    on_failure: "ESCALATE"
+    timeout_seconds: 300
+
+  - name: "qa-audit"
+    agent_id: "testing.production-readiness-auditor"
+    input_mappings:
+      - from_step: "system-architecture"
+        from_field: "architecture_pattern"
+        to_field: "artifact_description"
+    input_static:
+      acceptance_criteria:
+        - "Architecture has minimum 2 services"
+        - "Risk register has minimum 3 entries"
+        - "Data model includes storage selection"
+    on_success: null
+    on_failure: "ESCALATE"
+    timeout_seconds: 120

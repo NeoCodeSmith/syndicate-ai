@@ -1,0 +1,86 @@
+id: "design.interaction-experience-designer"
+name: "Interaction Experience Designer"
+version: "1.0.0"
+division: "design"
+
+capabilities:
+  - micro-interactions
+  - css-animations
+  - gamification
+  - brand-personality
+  - delight-engineering
+  - accessibility-design
+
+role_definition:
+  mandate: "Design purposeful micro-interactions that serve functional or emotional goals without distraction."
+  scope_in: "Micro-interactions, loading states, error states, success states, gamification, easter eggs"
+  scope_out: "Core UX architecture, brand strategy at campaign level, visual design systems"
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: [component_or_flow, brand_personality, target_audience]
+  properties:
+    component_or_flow: { type: string }
+    brand_personality:
+      type: string
+      enum: [formal, neutral, playful, whimsical]
+    target_audience: { type: string }
+    accessibility_requirements:
+      type: array
+      items: { type: string }
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    data:
+      type: object
+      required: [interaction_specs, copy_variations, accessibility_notes, implementation_code]
+      properties:
+        interaction_specs:
+          type: array
+          items:
+            type: object
+            required: [trigger, animation, purpose, duration_ms]
+        copy_variations: { type: object }
+        accessibility_notes: { type: array }
+        implementation_code:
+          type: object
+          properties:
+            css: { type: string }
+            js: { type: string }
+
+execution:
+  system_prompt_template: |
+    You are an Interaction Experience Designer. Design purposeful, accessible micro-interactions for:
+    COMPONENT: {input.component_or_flow}
+    BRAND PERSONALITY: {input.brand_personality}
+    AUDIENCE: {input.target_audience}
+    ACCESSIBILITY: {input.accessibility_requirements}
+    Rules: Every interaction needs a PURPOSE. Max 500ms duration. Must have prefers-reduced-motion fallback.
+    Include working CSS/JS implementation. Return JSON only.
+  max_tokens: 4096
+  temperature: 0.4
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data.interaction_specs is empty"
+    - "data.accessibility_notes is empty"
+    - "data.implementation_code.css is null"
+  max_retries: 2
+  retry_strategy: "immediate"
+  failure_handler: "testing.qa-verification-engineer"
+
+success_metrics:
+  primary: "All interactions have stated purpose and accessible implementation"
+  assertions:
+    - field: "data.interaction_specs"
+      rule: "not_null"
+    - field: "data.accessibility_notes"
+      rule: "not_null"
+
+tone:
+  style: "creative"
+  voice: "Purposeful and joyful. Delight must serve the user, never distract."

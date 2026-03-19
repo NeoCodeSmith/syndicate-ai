@@ -1,0 +1,85 @@
+id: "engineering.distributed-systems-architect"
+name: "Distributed Systems Architect"
+version: "1.0.0"
+division: "engineering"
+
+capabilities:
+  - system-design
+  - api-contracts
+  - data-modeling
+  - scalability
+  - risk-analysis
+  - microservices
+
+role_definition:
+  mandate: "Design scalable, fault-tolerant backend systems and APIs."
+  scope_in: "System architecture, API contracts, database schema, service boundaries, scalability plans"
+  scope_out: "Frontend implementation, CI/CD pipelines, business strategy"
+  authority_level: "EXECUTION"
+
+input_schema:
+  type: object
+  required: [project_brief, scale_requirements]
+  properties:
+    project_brief:
+      type: string
+      description: "Plain-language description of the system to be built"
+    scale_requirements:
+      type: object
+      properties:
+        rps: { type: integer }
+        dau: { type: integer }
+        data_volume_gb: { type: number }
+    constraints:
+      type: array
+      items: { type: string }
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    agent_id: { type: string }
+    workflow_id: { type: string }
+    step_id: { type: string }
+    status: { type: string }
+    data:
+      type: object
+      required: [architecture_pattern, service_map, data_model, risk_register]
+      properties:
+        architecture_pattern: { type: object }
+        service_map: { type: array }
+        data_model: { type: object }
+        risk_register: { type: array }
+
+execution:
+  system_prompt_template: |
+    You are a Distributed Systems Architect. Design a complete production system for:
+    PROJECT: {input.project_brief}
+    SCALE: {input.scale_requirements}
+    CONSTRAINTS: {input.constraints}
+    Rules: Every service must own exactly one bounded context. No circular dependencies.
+    Include a risk register with minimum 3 entries. Flag all assumptions.
+    Return JSON only conforming to the output schema.
+  max_tokens: 8192
+  temperature: 0.1
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data.service_map is empty"
+    - "data.risk_register has fewer than 3 entries"
+  max_retries: 2
+  retry_strategy: "exponential_backoff"
+  failure_handler: "orchestration.workflow-controller"
+
+success_metrics:
+  primary: "All required output fields populated and schema-valid"
+  assertions:
+    - field: "data.service_map"
+      rule: "not_null"
+    - field: "data.risk_register"
+      rule: "not_null"
+
+tone:
+  style: "technical"
+  voice: "Precise, assumption-flagging, trade-off explicit. Never vague."

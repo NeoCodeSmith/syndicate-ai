@@ -1,0 +1,49 @@
+id: "marketing-campaign"
+name: "Marketing Campaign Pipeline"
+version: "1.0.0"
+description: "Growth strategy, content plan, and channel execution for a product launch."
+initial_step: "growth-strategy"
+
+context_schema:
+  type: object
+  required: [product_description, launch_goal]
+  properties:
+    product_description: { type: string }
+    launch_goal: { type: string }
+    budget: { type: string }
+
+steps:
+  - name: "growth-strategy"
+    agent_id: "marketing.growth-systems-engineer"
+    input_mappings:
+      - from_step: "_context"
+        from_field: "product_description"
+        to_field: "product_description"
+      - from_step: "_context"
+        from_field: "launch_goal"
+        to_field: "growth_target"
+      - from_step: "_context"
+        from_field: "budget"
+        to_field: "budget_constraint"
+    input_static:
+      current_metrics:
+        users: 0
+        mrr: 0
+    on_success: "readiness-audit"
+    on_failure: "ESCALATE"
+    timeout_seconds: 120
+
+  - name: "readiness-audit"
+    agent_id: "testing.production-readiness-auditor"
+    input_mappings:
+      - from_step: "growth-strategy"
+        from_field: "thirty_day_plan"
+        to_field: "artifact_description"
+    input_static:
+      acceptance_criteria:
+        - "Minimum 3 growth experiments defined"
+        - "Each experiment has a measurable success metric"
+        - "30-day plan is actionable and sequenced"
+    on_success: null
+    on_failure: "ESCALATE"
+    timeout_seconds: 60

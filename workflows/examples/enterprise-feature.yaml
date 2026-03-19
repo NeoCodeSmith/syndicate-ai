@@ -1,0 +1,71 @@
+id: "enterprise-feature"
+name: "Enterprise Feature Pipeline"
+version: "1.0.0"
+description: "Architecture + UI implementation + delight layer + production readiness for a feature."
+initial_step: "architecture"
+
+context_schema:
+  type: object
+  required: [feature_brief, tech_stack]
+  properties:
+    feature_brief: { type: string }
+    tech_stack: { type: string }
+
+steps:
+  - name: "architecture"
+    agent_id: "engineering.distributed-systems-architect"
+    input_mappings:
+      - from_step: "_context"
+        from_field: "feature_brief"
+        to_field: "project_brief"
+    input_static:
+      scale_requirements:
+        rps: 500
+        dau: 10000
+    on_success: "ui-implementation"
+    on_failure: "ESCALATE"
+    timeout_seconds: 300
+
+  - name: "ui-implementation"
+    agent_id: "engineering.ui-engineer"
+    input_mappings:
+      - from_step: "_context"
+        from_field: "feature_brief"
+        to_field: "feature_description"
+      - from_step: "_context"
+        from_field: "tech_stack"
+        to_field: "tech_stack"
+    input_static:
+      accessibility_level: "AA"
+    on_success: "delight-layer"
+    on_failure: "ESCALATE"
+    timeout_seconds: 300
+
+  - name: "delight-layer"
+    agent_id: "design.interaction-experience-designer"
+    input_mappings:
+      - from_step: "_context"
+        from_field: "feature_brief"
+        to_field: "component_or_flow"
+    input_static:
+      brand_personality: "neutral"
+      target_audience: "enterprise users"
+    on_success: "final-audit"
+    on_failure: "ESCALATE"
+    timeout_seconds: 120
+
+  - name: "final-audit"
+    agent_id: "testing.production-readiness-auditor"
+    input_mappings:
+      - from_step: "_context"
+        from_field: "feature_brief"
+        to_field: "artifact_description"
+    input_static:
+      acceptance_criteria:
+        - "Architecture is complete with service map and risk register"
+        - "UI component is typed and accessible"
+        - "Interactions have stated purpose and accessibility fallbacks"
+        - "No blocking issues identified"
+    on_success: null
+    on_failure: "ESCALATE"
+    timeout_seconds: 120

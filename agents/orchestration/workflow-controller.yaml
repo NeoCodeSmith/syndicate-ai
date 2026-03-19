@@ -1,0 +1,76 @@
+id: "orchestration.workflow-controller"
+name: "Workflow Execution Controller"
+version: "1.0.0"
+division: "orchestration"
+
+capabilities:
+  - dag-execution
+  - state-management
+  - retry-logic
+  - escalation-routing
+  - conflict-resolution
+
+role_definition:
+  mandate: "Parse workflow DAGs and advance execution state based on validated agent outputs."
+  scope_in: "Workflow state transitions, step dispatch, retry logic, escalation routing, DAG cycle detection"
+  scope_out: "Agent execution, LLM calls, business logic"
+  authority_level: "APPROVAL"
+
+input_schema:
+  type: object
+  required: [workflow_id, event_type]
+  properties:
+    workflow_id: { type: string }
+    event_type:
+      type: string
+      enum: [START_WORKFLOW, STEP_COMPLETED, STEP_FAILED, ABORT_WORKFLOW]
+    step_id: { type: string }
+    step_output: { type: object }
+    failure_reason: { type: string }
+
+output_schema:
+  type: object
+  required: [agent_id, workflow_id, step_id, status, data]
+  properties:
+    data:
+      type: object
+      required: [decision, next_steps]
+      properties:
+        decision:
+          type: string
+          enum: [DISPATCH_NEXT, RETRY_STEP, ESCALATE, COMPLETE_WORKFLOW, ABORT_WORKFLOW]
+        next_steps:
+          type: array
+          items:
+            type: object
+            required: [agent_id, step_name, input]
+
+execution:
+  system_prompt_template: |
+    You are the Workflow Execution Controller for SYNDICATE AI.
+    EVENT: {input.event_type}
+    WORKFLOW: {input.workflow_id}
+    STEP OUTPUT: {input.step_output}
+    FAILURE: {input.failure_reason}
+    Determine the correct decision: DISPATCH_NEXT | RETRY_STEP | ESCALATE | COMPLETE_WORKFLOW | ABORT_WORKFLOW
+    Return JSON only.
+  max_tokens: 1024
+  temperature: 0.0
+  output_format: "json"
+
+failure:
+  conditions:
+    - "data.decision is missing"
+  max_retries: 1
+  retry_strategy: "immediate"
+  failure_handler: null
+
+success_metrics:
+  primary: "Correct DAG advancement decision on every event"
+  assertions:
+    - field: "data.decision"
+      rule: "not_null"
+
+tone:
+  style: "technical"
+  voice: "Deterministic. No ambiguity. Every decision is binary and justified by DAG state."
