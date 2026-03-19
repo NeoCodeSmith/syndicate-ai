@@ -7,14 +7,22 @@ a real state machine that advances workflow steps, handles retries with
 exponential backoff, and escalates on terminal failures.
 """
 from __future__ import annotations
+
 import logging
-import time
-from typing import Any, Dict, Optional
+from typing import Any
+
 import redis
 from celery import Celery
+
 from syndicate.core.models import (
-    AgentOutput, AgentOutputStatus, OrchestratorDecision,
-    StepExecution, StepStatus, WorkflowDefinition, WorkflowExecution, WorkflowStatus,
+    AgentOutput,
+    AgentOutputStatus,
+    OrchestratorDecision,
+    StepExecution,
+    StepStatus,
+    WorkflowDefinition,
+    WorkflowExecution,
+    WorkflowStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,7 +43,7 @@ class OrchestrationEngine:
     # ── Public ──────────────────────────────────────────────────────────────
 
     def start_workflow(self, workflow_def: WorkflowDefinition,
-                       context: Dict[str, Any], created_by: Optional[str] = None) -> WorkflowExecution:
+                       context: dict[str, Any], created_by: str | None = None) -> WorkflowExecution:
         execution = WorkflowExecution(
             workflow_definition_id=workflow_def.id,
             workflow_name=workflow_def.name,
@@ -139,7 +147,7 @@ class OrchestrationEngine:
         logger.info(f"Dispatched '{step_def.name}' → '{step_def.agent_id}'")
         return step_exec
 
-    def _resolve_input(self, execution, workflow_def, step_def) -> Dict[str, Any]:
+    def _resolve_input(self, execution, workflow_def, step_def) -> dict[str, Any]:
         result = dict(step_def.input_static)
         for m in step_def.input_mappings:
             src = self._memory.get(execution.id, f"step:{m.from_step}:output")
@@ -162,7 +170,7 @@ class OrchestrationEngine:
         logger.error(f"Workflow aborted: {reason}", extra={"id": execution.id})
         return OrchestratorDecision.ABORT_WORKFLOW
 
-    def _persist(self, execution):
+    def _persist(self, execution) -> None:
         self._redis.setex(f"execution:{execution.id}", 86400 * 7, execution.model_dump_json())
 
     def _load(self, execution_id: str) -> WorkflowExecution:
@@ -197,7 +205,7 @@ class OrchestrationEngine:
             cur = cur.get(p)
         return cur
 
-    def _nested_set(self, data, path, value):
+    def _nested_set(self, data, path, value) -> None:
         parts = path.split(".")
         cur = data
         for p in parts[:-1]:

@@ -9,17 +9,17 @@ This is the gate that prevents invalid data from advancing the DAG.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import jsonschema
 
-from syndicate.core.models import AgentDefinition, AgentOutput, AgentOutputStatus
+from syndicate.core.models import AgentDefinition, AgentOutput
 
 logger = logging.getLogger(__name__)
 
 
 class ValidationResult:
-    def __init__(self, passed: bool, errors: List[str]) -> None:
+    def __init__(self, passed: bool, errors: list[str]) -> None:
         self.passed = passed
         self.errors = errors
 
@@ -40,7 +40,7 @@ class ValidationEngine:
     def validate(
         self, output: AgentOutput, agent_def: AgentDefinition
     ) -> ValidationResult:
-        errors: List[str] = []
+        errors: list[str] = []
 
         # Pass 1: JSON Schema
         schema_errors = self._validate_schema(
@@ -67,8 +67,8 @@ class ValidationEngine:
         return ValidationResult(passed=passed, errors=errors)
 
     def _validate_schema(
-        self, data: Dict[str, Any], schema: Dict[str, Any]
-    ) -> List[str]:
+        self, data: dict[str, Any], schema: dict[str, Any]
+    ) -> list[str]:
         errors = []
         try:
             jsonschema.validate(instance=data, schema=schema)
@@ -79,8 +79,8 @@ class ValidationEngine:
         return errors
 
     def _run_assertions(
-        self, data: Dict[str, Any], assertions: List[Dict[str, str]]
-    ) -> List[str]:
+        self, data: dict[str, Any], assertions: list[dict[str, str]]
+    ) -> list[str]:
         errors = []
         for assertion in assertions:
             field = assertion.get("field", "")
@@ -94,8 +94,8 @@ class ValidationEngine:
         return errors
 
     def _evaluate_rule(
-        self, value: Any, rule: str, context: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, value: Any, rule: str, context: dict[str, Any]
+    ) -> tuple[bool, str]:
         if rule == "not_null":
             return (value is not None, "value is null")
 
@@ -135,7 +135,7 @@ class ValidationEngine:
         logger.warning(f"Unknown assertion rule: {rule}")
         return (True, "")
 
-    def _get_nested(self, data: Dict, path: str) -> Any:
+    def _get_nested(self, data: dict, path: str) -> Any:
         """Navigate dot-notation path."""
         parts = path.split(".")
         current = data

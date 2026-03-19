@@ -3,14 +3,16 @@ SYNDICATE AI — Core Data Models
 File: src/syndicate/core/models.py
 """
 from __future__ import annotations
+
 import uuid
 from datetime import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional
+from enum import StrEnum
+from typing import Any
+
 from pydantic import BaseModel, Field, field_validator
 
 
-class StepStatus(str, Enum):
+class StepStatus(StrEnum):
     PENDING = "PENDING"
     ACTIVE = "ACTIVE"
     VERIFIED = "VERIFIED"
@@ -20,7 +22,7 @@ class StepStatus(str, Enum):
     RETRYING = "RETRYING"
 
 
-class WorkflowStatus(str, Enum):
+class WorkflowStatus(StrEnum):
     PENDING = "PENDING"
     ACTIVE = "ACTIVE"
     PAUSED = "PAUSED"
@@ -29,13 +31,13 @@ class WorkflowStatus(str, Enum):
     ABORTED = "ABORTED"
 
 
-class AgentOutputStatus(str, Enum):
+class AgentOutputStatus(StrEnum):
     SUCCESS = "SUCCESS"
     PARTIAL = "PARTIAL"
     FAILED = "FAILED"
 
 
-class OrchestratorDecision(str, Enum):
+class OrchestratorDecision(StrEnum):
     DISPATCH_NEXT = "DISPATCH_NEXT"
     RETRY_STEP = "RETRY_STEP"
     ESCALATE = "ESCALATE"
@@ -43,22 +45,22 @@ class OrchestratorDecision(str, Enum):
     ABORT_WORKFLOW = "ABORT_WORKFLOW"
 
 
-class AuthorityLevel(str, Enum):
+class AuthorityLevel(StrEnum):
     ADVISORY = "ADVISORY"
     EXECUTION = "EXECUTION"
     APPROVAL = "APPROVAL"
 
 
 class AgentFailureConfig(BaseModel):
-    conditions: List[str] = Field(default_factory=list)
+    conditions: list[str] = Field(default_factory=list)
     max_retries: int = Field(default=3, ge=0, le=10)
     retry_strategy: str = "exponential_backoff"
-    failure_handler: Optional[str] = None
+    failure_handler: str | None = None
 
 
 class AgentExecutionConfig(BaseModel):
     system_prompt_template: str
-    tools: List[str] = Field(default_factory=list)
+    tools: list[str] = Field(default_factory=list)
     max_tokens: int = Field(default=4096, ge=256, le=32768)
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     output_format: str = "json"
@@ -66,7 +68,7 @@ class AgentExecutionConfig(BaseModel):
 
 class AgentSuccessMetrics(BaseModel):
     primary: str
-    assertions: List[Dict[str, str]] = Field(default_factory=list)
+    assertions: list[dict[str, str]] = Field(default_factory=list)
 
 
 class AgentTone(BaseModel):
@@ -79,14 +81,14 @@ class AgentDefinition(BaseModel):
     name: str
     version: str
     division: str
-    role_definition: Dict[str, Any]
-    input_schema: Dict[str, Any]
-    output_schema: Dict[str, Any]
+    role_definition: dict[str, Any]
+    input_schema: dict[str, Any]
+    output_schema: dict[str, Any]
     execution: AgentExecutionConfig
     failure: AgentFailureConfig
     success_metrics: AgentSuccessMetrics
     tone: AgentTone
-    capabilities: List[str] = Field(default_factory=list)
+    capabilities: list[str] = Field(default_factory=list)
 
 
 class AgentOutputMetadata(BaseModel):
@@ -102,26 +104,26 @@ class AgentOutput(BaseModel):
     workflow_id: str
     step_id: str
     status: AgentOutputStatus
-    data: Dict[str, Any]
+    data: dict[str, Any]
     metadata: AgentOutputMetadata = Field(default_factory=AgentOutputMetadata)
-    errors: List[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
 
 
 class StepInputMapping(BaseModel):
     from_step: str
     from_field: str
     to_field: str
-    transform: Optional[str] = None
+    transform: str | None = None
 
 
 class WorkflowStep(BaseModel):
     name: str
     agent_id: str
-    input_static: Dict[str, Any] = Field(default_factory=dict)
-    input_mappings: List[StepInputMapping] = Field(default_factory=list)
-    on_success: Optional[str] = None
-    on_failure: Optional[str] = None
-    parallel_with: List[str] = Field(default_factory=list)
+    input_static: dict[str, Any] = Field(default_factory=dict)
+    input_mappings: list[StepInputMapping] = Field(default_factory=list)
+    on_success: str | None = None
+    on_failure: str | None = None
+    parallel_with: list[str] = Field(default_factory=list)
     timeout_seconds: int = 300
     required: bool = True
 
@@ -131,13 +133,13 @@ class WorkflowDefinition(BaseModel):
     name: str
     version: str = "1.0.0"
     description: str = ""
-    steps: List[WorkflowStep]
+    steps: list[WorkflowStep]
     initial_step: str
-    context_schema: Optional[Dict[str, Any]] = None
+    context_schema: dict[str, Any] | None = None
 
     @field_validator("steps")
     @classmethod
-    def validate_dag(cls, steps: List[WorkflowStep]) -> List[WorkflowStep]:
+    def validate_dag(cls, steps: list[WorkflowStep]) -> list[WorkflowStep]:
         step_names = {s.name for s in steps}
         for step in steps:
             if step.on_success and step.on_success not in step_names:
@@ -160,12 +162,12 @@ class StepExecution(BaseModel):
     agent_id: str
     status: StepStatus = StepStatus.PENDING
     attempt: int = 1
-    input: Dict[str, Any] = Field(default_factory=dict)
-    output: Optional[AgentOutput] = None
+    input: dict[str, Any] = Field(default_factory=dict)
+    output: AgentOutput | None = None
     validated: bool = False
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
 
 
 class WorkflowExecution(BaseModel):
@@ -173,31 +175,31 @@ class WorkflowExecution(BaseModel):
     workflow_definition_id: str
     workflow_name: str
     status: WorkflowStatus = WorkflowStatus.PENDING
-    context: Dict[str, Any] = Field(default_factory=dict)
-    current_step: Optional[str] = None
-    steps: List[StepExecution] = Field(default_factory=list)
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    created_by: Optional[str] = None
+    context: dict[str, Any] = Field(default_factory=dict)
+    current_step: str | None = None
+    steps: list[StepExecution] = Field(default_factory=list)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    created_by: str | None = None
 
 
 class CreateWorkflowRequest(BaseModel):
-    context: Dict[str, Any] = Field(default_factory=dict)
-    created_by: Optional[str] = None
+    context: dict[str, Any] = Field(default_factory=dict)
+    created_by: str | None = None
 
 
 class WorkflowStatusResponse(BaseModel):
     execution_id: str
     workflow_name: str
     status: WorkflowStatus
-    current_step: Optional[str]
+    current_step: str | None
     completed_steps: int
     total_steps: int
-    started_at: Optional[datetime]
-    completed_at: Optional[datetime]
+    started_at: datetime | None
+    completed_at: datetime | None
 
 
 class AgentListResponse(BaseModel):
-    agents: List[Dict[str, Any]]
+    agents: list[dict[str, Any]]
     total: int
-    divisions: List[str]
+    divisions: list[str]

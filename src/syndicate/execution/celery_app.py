@@ -4,6 +4,7 @@ File: src/syndicate/execution/celery_app.py
 """
 
 from celery import Celery
+
 from syndicate.app import get_settings
 
 settings = get_settings()

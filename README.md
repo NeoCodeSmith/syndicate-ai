@@ -42,31 +42,7 @@ SYNDICATE AI is a **deterministic, production-grade multi-agent orchestration pl
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         SYNDICATE AI                            │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Interface Layer  (FastAPI · API Key Auth · Rate Limit)  │   │
-│  └────────────────────────────┬─────────────────────────────┘   │
-│                               │                                 │
-│  ┌────────────────────────────▼─────────────────────────────┐   │
-│  │  Orchestration Layer  (DAG Executor · State Machine)     │   │
-│  │  PENDING → ACTIVE → VERIFIED → COMMITTED                 │   │
-│  └──────────┬──────────────────────────┬────────────────────┘   │
-│             │                          │                        │
-│  ┌──────────▼──────────┐  ┌────────────▼──────────────────┐    │
-│  │   Memory Layer      │  │   Execution Layer             │    │
-│  │   PostgreSQL (WAL)  │  │   Celery Workers              │    │
-│  │   Redis (hot cache) │  │   LLM Provider (pluggable)    │    │
-│  └─────────────────────┘  └────────────┬──────────────────┘    │
-│                                        │                        │
-│  ┌─────────────────────────────────────▼──────────────────┐    │
-│  │  Validation Layer  (Pydantic · JSON Schema · Assertions)│    │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+<img src="docs/assets/architecture-flowchart.svg" alt="SYNDICATE AI Architecture" width="100%" />
 
 **Five execution layers, each with a single responsibility:**
 

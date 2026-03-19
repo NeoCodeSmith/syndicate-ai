@@ -3,10 +3,12 @@ SYNDICATE AI — Celery Tasks
 File: src/syndicate/execution/tasks.py
 """
 from __future__ import annotations
+
 import logging
-from typing import Any, Dict
-from syndicate.execution.celery_app import celery_app
+from typing import Any
+
 from syndicate.core.models import AgentOutputStatus
+from syndicate.execution.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
     bind=True, acks_late=True, reject_on_worker_lost=True,
 )
 def run_agent(self, execution_id: str, step_id: str, agent_id: str,
-              step_name: str, input_data: Dict[str, Any]) -> None:
+              step_name: str, input_data: dict[str, Any]) -> None:
     from syndicate.app import get_execution_engine, get_orchestration_engine
     exec_engine = get_execution_engine()
     orch_engine = get_orchestration_engine()

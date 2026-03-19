@@ -6,14 +6,19 @@ Handles LLM calls with typed I/O enforcement. Each agent invocation is
 isolated — no shared mutable state, full JSON output enforcement.
 """
 from __future__ import annotations
+
 import json
 import logging
 import time
-from typing import Any, Dict, Optional
+from typing import Any
+
 import jsonschema
 from openai import OpenAI
+
 from syndicate.core.models import (
-    AgentDefinition, AgentOutput, AgentOutputMetadata, AgentOutputStatus,
+    AgentOutput,
+    AgentOutputMetadata,
+    AgentOutputStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +33,7 @@ class ExecutionEngine:
         self._model = model
 
     def run(self, execution_id: str, step_id: str, agent_id: str,
-            step_name: str, input_data: Dict[str, Any], attempt: int = 1) -> AgentOutput:
+            step_name: str, input_data: dict[str, Any], attempt: int = 1) -> AgentOutput:
         agent_def = self._registry.get(agent_id)
         if not agent_def:
             return self._fail(execution_id, step_id, agent_id, f"Agent '{agent_id}' not in registry")
@@ -73,20 +78,20 @@ class ExecutionEngine:
                                          duration_ms=duration_ms, attempt=attempt),
         )
 
-    def _render(self, template: str, inputs: Dict[str, Any]) -> str:
+    def _render(self, template: str, inputs: dict[str, Any]) -> str:
         result = template
         for k, v in inputs.items():
             result = result.replace(f"{{input.{k}}}", str(v) if not isinstance(v, str) else v)
         return result
 
-    def _parse_json(self, text: str) -> Dict[str, Any]:
+    def _parse_json(self, text: str) -> dict[str, Any]:
         t = text.strip()
         if t.startswith("```"):
             lines = t.split("\n")
             t = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
         return json.loads(t)
 
-    def _validate_schema(self, data: Dict, schema: Dict) -> Optional[str]:
+    def _validate_schema(self, data: dict, schema: dict) -> str | None:
         try:
             jsonschema.validate(instance=data, schema=schema)
             return None

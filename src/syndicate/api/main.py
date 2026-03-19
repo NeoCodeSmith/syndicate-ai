@@ -3,13 +3,16 @@ SYNDICATE AI — FastAPI Interface Layer
 File: src/syndicate/api/main.py
 """
 from __future__ import annotations
+
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
+
 import jsonschema
-from fastapi import Depends, FastAPI, HTTPException, Security, status
+from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security.api_key import APIKeyHeader
 from prometheus_fastapi_instrumentator import Instrumentator
+
 from syndicate.core.models import AgentListResponse, CreateWorkflowRequest, WorkflowStatusResponse
 
 logger = logging.getLogger(__name__)
@@ -38,7 +41,7 @@ async def verify_api_key(key: str = Security(API_KEY_HEADER)) -> str:
 
 
 @app.get("/health")
-async def health() -> Dict[str, str]:
+async def health() -> dict[str, str]:
     return {"status": "healthy", "version": "1.0.0"}
 
 
@@ -93,7 +96,7 @@ async def get_execution(execution_id: str, _: str = Depends(verify_api_key)) -> 
 
 
 @app.get("/api/v1/agents", response_model=AgentListResponse)
-async def list_agents(division: Optional[str] = None, capability: Optional[str] = None,
+async def list_agents(division: str | None = None, capability: str | None = None,
                       _: str = Depends(verify_api_key)) -> AgentListResponse:
     from syndicate.app import get_agent_registry
     reg = get_agent_registry()
@@ -111,7 +114,7 @@ async def list_agents(division: Optional[str] = None, capability: Optional[str] 
 
 
 @app.get("/api/v1/agents/{agent_id}")
-async def get_agent(agent_id: str, _: str = Depends(verify_api_key)) -> Dict[str, Any]:
+async def get_agent(agent_id: str, _: str = Depends(verify_api_key)) -> dict[str, Any]:
     from syndicate.app import get_agent_registry
     agent = get_agent_registry().get(agent_id)
     if not agent:

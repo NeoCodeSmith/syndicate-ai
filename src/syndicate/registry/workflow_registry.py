@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import yaml
 
@@ -20,7 +19,7 @@ class WorkflowRegistry:
     """Loads all YAML workflow DAGs on startup. O(1) lookup by workflow ID."""
 
     def __init__(self, workflows_dir: Path) -> None:
-        self._workflows: Dict[str, WorkflowDefinition] = {}
+        self._workflows: dict[str, WorkflowDefinition] = {}
         self._load_from_directory(workflows_dir)
 
     def _load_from_directory(self, workflows_dir: Path) -> None:
@@ -36,8 +35,8 @@ class WorkflowRegistry:
                 logger.warning(f"Failed to load workflow from {yaml_file}: {exc}")
         logger.info(f"Workflow Registry loaded {count} workflows from {workflows_dir}")
 
-    def get(self, workflow_id: str) -> Optional[WorkflowDefinition]:
+    def get(self, workflow_id: str) -> WorkflowDefinition | None:
         return self._workflows.get(workflow_id)
 
-    def list_all(self) -> List[WorkflowDefinition]:
+    def list_all(self) -> list[WorkflowDefinition]:
         return list(self._workflows.values())

@@ -7,9 +7,11 @@ Two-tier memory replacing the fictional 'Memory' persona fields:
 - PostgreSQL: durable audit trail (via SQLAlchemy, stub here)
 """
 from __future__ import annotations
+
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
+
 import redis as redis_module
 
 logger = logging.getLogger(__name__)
@@ -21,17 +23,17 @@ class MemoryStore:
         self._redis = redis_client
 
     def set(self, execution_id: str, key: str, value: Any,
-            step_id: Optional[str] = None, ttl: int = DEFAULT_TTL) -> None:
+            step_id: str | None = None, ttl: int = DEFAULT_TTL) -> None:
         self._redis.setex(f"memory:{execution_id}:{key}", ttl, json.dumps(value))
 
-    def get(self, execution_id: str, key: str) -> Optional[Any]:
+    def get(self, execution_id: str, key: str) -> Any | None:
         raw = self._redis.get(f"memory:{execution_id}:{key}")
         return json.loads(raw) if raw else None
 
     def delete(self, execution_id: str, key: str) -> None:
         self._redis.delete(f"memory:{execution_id}:{key}")
 
-    def get_all(self, execution_id: str) -> Dict[str, Any]:
+    def get_all(self, execution_id: str) -> dict[str, Any]:
         keys = self._redis.keys(f"memory:{execution_id}:*")
         result = {}
         for k in keys:

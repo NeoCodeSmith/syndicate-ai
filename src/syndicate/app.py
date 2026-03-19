@@ -11,11 +11,9 @@ from __future__ import annotations
 import logging
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 import redis as redis_module
 from openai import OpenAI
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -87,8 +85,8 @@ def get_settings() -> Settings:
 # SERVICE GETTERS (lazy singletons)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_redis_client: Optional[redis_module.Redis] = None
-_llm_client: Optional[OpenAI] = None
+_redis_client: redis_module.Redis | None = None
+_llm_client: OpenAI | None = None
 _agent_registry = None
 _workflow_registry = None
 _memory_store = None
@@ -145,6 +143,7 @@ def get_orchestration_engine():
     global _orchestration_engine
     if _orchestration_engine is None:
         from celery import current_app as celery_app
+
         from syndicate.orchestration.engine import OrchestrationEngine
         _orchestration_engine = OrchestrationEngine(
             celery_app=celery_app,
