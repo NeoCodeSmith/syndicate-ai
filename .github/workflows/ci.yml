@@ -102,7 +102,7 @@ jobs:
           LLM_MODEL: gpt-4o-mini
           SYNDICATE_API_KEYS: sk-test-key
         run: |
-          pytest tests/unit/ -v --cov=syndicate --cov-report=xml
+          pytest tests/unit/ -v
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

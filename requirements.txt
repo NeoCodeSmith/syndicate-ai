@@ -1,47 +1,49 @@
-# ─── Core Framework ─────────────────────────────────────────────────────────
+# ─── Core Framework ──────────────────────────────────────────────────────────
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 pydantic==2.10.3
 pydantic-settings==2.6.1
 
-# ─── Task Queue ─────────────────────────────────────────────────────────────
+# ─── Task Queue ───────────────────────────────────────────────────────────────
 celery[redis]==5.4.0
 flower==2.0.1
 
-# ─── Database ───────────────────────────────────────────────────────────────
+# ─── Database ────────────────────────────────────────────────────────────────
 sqlalchemy==2.0.36
 alembic==1.14.0
 asyncpg==0.30.0
 psycopg2-binary==2.9.10
 
-# ─── Cache / Broker ─────────────────────────────────────────────────────────
+# ─── Cache / Broker ──────────────────────────────────────────────────────────
 redis==5.2.1
 hiredis==3.1.0
 
-# ─── LLM Client ─────────────────────────────────────────────────────────────
+# ─── LLM Client ───────────────────────────────────────────────────────────────
 openai==1.57.4
 anthropic==0.39.0
 tiktoken==0.8.0
 
-# ─── Validation ─────────────────────────────────────────────────────────────
+# ─── Validation ───────────────────────────────────────────────────────────────
 jsonschema==4.23.0
 
-# ─── Configuration ──────────────────────────────────────────────────────────
+# ─── Configuration ────────────────────────────────────────────────────────────
 python-dotenv==1.0.1
 pyyaml==6.0.2
 
-# ─── HTTP Client ────────────────────────────────────────────────────────────
+# ─── HTTP Client ──────────────────────────────────────────────────────────────
 httpx==0.28.1
 
-# ─── Observability ──────────────────────────────────────────────────────────
-opentelemetry-sdk==1.28.4
-opentelemetry-instrumentation-fastapi==0.49b4
-opentelemetry-instrumentation-celery==0.49b4
-opentelemetry-exporter-otlp==1.28.4
+# ─── Observability ────────────────────────────────────────────────────────────
+# Note: otel instrumentation versions follow a different scheme (0.Nb0 → sdk 1.N.0)
+# opentelemetry-sdk 1.28.2 pairs with instrumentation 0.49b2
+opentelemetry-sdk==1.28.2
+opentelemetry-instrumentation-fastapi==0.49b2
+opentelemetry-instrumentation-celery==0.49b2
+opentelemetry-exporter-otlp==1.28.2
 prometheus-client==0.21.1
-prometheus-fastapi-instrumentator==7.0.0
+prometheus-fastapi-instrumentator==7.0.2
 structlog==24.4.0
 
-# ─── Security ───────────────────────────────────────────────────────────────
+# ─── Security ────────────────────────────────────────────────────────────────
 slowapi==0.1.9
 python-multipart==0.0.18

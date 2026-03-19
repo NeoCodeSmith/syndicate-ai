@@ -59,6 +59,7 @@ disallow_untyped_decorators = false
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["src"]
 addopts = "--cov=syndicate --cov-report=term-missing --cov-report=xml"
 filterwarnings = ["ignore::DeprecationWarning"]
 
