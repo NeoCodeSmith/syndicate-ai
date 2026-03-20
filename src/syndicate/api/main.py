@@ -279,3 +279,230 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
         status_code=500,
         content={"detail": "Internal server error"},
     )
+
+
+# ── Workflow Versioning ───────────────────────────────────────────────────────
+
+
+@app.get("/api/v1/workflows/{workflow_id}/versions")
+@limiter.limit("60/minute")
+async def list_workflow_versions(
+    request: Request,
+    workflow_id: str,
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """List all versions of a workflow with changelog."""
+    from syndicate.app import get_redis
+    from syndicate.versioning.manager import WorkflowVersionManager
+
+    workflow_id = _sanitise_id(workflow_id, "workflow_id")
+    manager = WorkflowVersionManager(get_redis())
+    versions = manager.list_versions(workflow_id)
+    return {
+        "workflow_id": workflow_id,
+        "total": len(versions),
+        "versions": [
+            {
+                "version": v.version,
+                "created_at": v.created_at,
+                "created_by": v.created_by,
+                "change_summary": v.change_summary,
+                "breaking_change": v.breaking_change,
+            }
+            for v in versions
+        ],
+    }
+
+
+@app.post("/api/v1/workflows/{workflow_id}/rollback")
+@limiter.limit("10/minute")
+async def rollback_workflow(
+    request: Request,
+    workflow_id: str,
+    body: dict[str, Any],
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """Roll back a workflow to a previous version."""
+    from syndicate.app import get_redis
+    from syndicate.versioning.manager import WorkflowVersionManager
+
+    workflow_id = _sanitise_id(workflow_id, "workflow_id")
+    to_version = body.get("to_version", "")
+    if not to_version:
+        raise HTTPException(status_code=400, detail="to_version is required")
+
+    manager = WorkflowVersionManager(get_redis())
+    try:
+        version = manager.rollback(workflow_id, to_version)
+        return {"status": "rolled_back", "new_version": version.version}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ── Execution Replay ──────────────────────────────────────────────────────────
+
+
+@app.post("/api/v1/replay/sessions")
+@limiter.limit("20/minute")
+async def create_replay_session(
+    request: Request,
+    body: dict[str, Any],
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """Create a replay session from a past execution."""
+    from syndicate.app import get_execution_engine, get_redis
+    from syndicate.replay.engine import ReplayEngine
+
+    execution_id = body.get("execution_id", "")
+    if not execution_id:
+        raise HTTPException(status_code=400, detail="execution_id is required")
+
+    engine = ReplayEngine(get_redis(), get_execution_engine())
+    try:
+        session = engine.create_session(
+            execution_id=execution_id,
+            breakpoints=body.get("breakpoints", []),
+        )
+        return engine.get_session_state(session.session_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.get("/api/v1/replay/sessions/{session_id}")
+@limiter.limit("60/minute")
+async def get_replay_session(
+    request: Request,
+    session_id: str,
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """Get the state of a replay session."""
+    from syndicate.app import get_execution_engine, get_redis
+    from syndicate.replay.engine import ReplayEngine
+
+    session_id = _sanitise_id(session_id, "session_id")
+    engine = ReplayEngine(get_redis(), get_execution_engine())
+    try:
+        return engine.get_session_state(session_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.post("/api/v1/replay/sessions/{session_id}/step")
+@limiter.limit("60/minute")
+async def step_replay(
+    request: Request,
+    session_id: str,
+    body: dict[str, Any],
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """Advance a replay session by one step."""
+    from syndicate.app import get_execution_engine, get_redis
+    from syndicate.replay.engine import BreakpointAction, ReplayEngine
+
+    session_id = _sanitise_id(session_id, "session_id")
+    action_str = body.get("action", "continue")
+    try:
+        action = BreakpointAction(action_str)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid action: {action_str}") from None
+
+    engine = ReplayEngine(get_redis(), get_execution_engine())
+    try:
+        return engine.step_forward(session_id, action)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ── Marketplace ───────────────────────────────────────────────────────────────
+
+
+@app.get("/api/v1/marketplace/agents")
+@limiter.limit("60/minute")
+async def marketplace_search(
+    request: Request,
+    q: str = "",
+    division: str | None = None,
+    tier: str | None = None,
+    sort_by: str = "downloads",
+    page: int = 1,
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """Search the agent marketplace."""
+    from syndicate.app import get_redis
+    from syndicate.marketplace.registry import AgentMarketplace
+
+    mp = AgentMarketplace(get_redis())
+    result = mp.search(query=q, division=division, tier=tier, sort_by=sort_by, page=page)
+    return {
+        "agents": [
+            {
+                "agent_id": a.agent_id,
+                "name": a.name,
+                "division": a.division,
+                "version": a.version,
+                "tier": a.tier,
+                "downloads": a.downloads,
+                "rating": a.rating,
+                "description": a.description,
+                "capabilities": a.capabilities,
+                "install_command": a.install_command,
+            }
+            for a in result.agents
+        ],
+        "total": result.total,
+        "page": result.page,
+    }
+
+
+@app.post("/api/v1/marketplace/agents/{agent_id}/install")
+@limiter.limit("20/minute")
+async def marketplace_install(
+    request: Request,
+    agent_id: str,
+    body: dict[str, Any],
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """Install a marketplace agent into the local registry."""
+    from syndicate.app import get_redis
+    from syndicate.marketplace.registry import AgentMarketplace
+
+    agent_id = _sanitise_id(agent_id, "agent_id")
+    mp = AgentMarketplace(get_redis())
+    try:
+        return mp.install(agent_id=agent_id, version=body.get("version"))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ── Usage / Plan ──────────────────────────────────────────────────────────────
+
+
+@app.get("/api/v1/usage")
+@limiter.limit("60/minute")
+async def get_usage(
+    request: Request,
+    _: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """Get current usage statistics for this API key's organisation."""
+    from syndicate.app import get_redis
+    from syndicate.tenancy.middleware import TenantResolver, UsageMeter
+
+    resolver = TenantResolver(get_redis())
+    api_key = request.headers.get("X-API-Key", "")
+    ctx = resolver.resolve(api_key)
+    if not ctx:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    meter = UsageMeter(get_redis())
+    count = meter.get_execution_count(ctx.org_id)
+    limit = ctx.max_executions_per_month
+
+    return {
+        "org_id": ctx.org_id,
+        "plan": ctx.plan,
+        "executions_this_month": count,
+        "limit": limit if limit != -1 else "unlimited",
+        "limit_reached": not meter.check_limit(ctx),
+        "streaming_enabled": ctx.streaming_enabled,
+        "custom_agents_enabled": ctx.custom_agents_enabled,
+    }

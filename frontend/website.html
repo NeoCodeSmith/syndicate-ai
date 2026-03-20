@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SYNDICATE AI — Deterministic Multi-Agent Orchestration</title>
+  <meta name="description" content="The only multi-agent orchestration platform with typed contracts, DAG execution, real-time streaming, and execution replay. Built for engineers who ship.">
+  <meta property="og:title" content="SYNDICATE AI — Deterministic Multi-Agent Orchestration">
+  <meta property="og:description" content="105 production agents. DAG execution. Schema validation. Real-time SSE streaming. Deploy today.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── DESIGN TOKENS ──────────────────────────────────── */
+    :root {
+      --black:    #040508;
+      --void:     #070b11;
+      --deep:     #0a1020;
+      --surface:  #0e1828;
+      --card:     #111e30;
+      --border:   #162844;
+      --border2:  #1e3855;
+
+      --blue:     #1a6fff;
+      --blue-dim: #0f4aaa;
+      --cyan:     #00d4ff;
+      --cyan-dim: #005a6e;
+      --green:    #00e87a;
+      --amber:    #f5a623;
+      --red:      #ff3c5f;
+      --purple:   #9b59ff;
+
+      --text-1:   #f0f6ff;
+      --text-2:   #7a9ab5;
+      --text-3:   #3a5570;
+      --text-4:   #1e3350;
+
+      --mono:     'Space Mono', 'Courier New', monospace;
+      --display:  'Syne', sans-serif;
+
+      --r-sm: 4px;
+      --r-md: 8px;
+      --r-lg: 12px;
+      --r-xl: 20px;
+    }
+
+    /* ── RESET & BASE ────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--black);
+      color: var(--text-1);
+      font-family: var(--mono);
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: hidden;
+      cursor: none;
+    }
+    ::selection { background: rgba(0, 212, 255, 0.25); }
+
+    /* ── CUSTOM CURSOR ───────────────────────────────────── */
+    #cursor {
+      width: 8px; height: 8px;
+      background: var(--cyan);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    }
+    #cursor-ring {
+      width: 32px; height: 32px;
+      border: 1px solid rgba(0, 212, 255, 0.4);
+      border-radius: 50%;
+      position: fixed;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.12s ease, width 0.3s, height 0.3s;
+    }
+    a:hover ~ #cursor, button:hover ~ #cursor { width: 14px; height: 14px; }
+
+    /* ── GRID NOISE BACKGROUND ───────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(26, 111, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26, 111, 255, 0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ─────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: rgba(4, 5, 8, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      z-index: 500;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+    .nav-logo-mark {
+      width: 32px; height: 32px;
+      position: relative;
+    }
+    .nav-logo-mark svg { width: 100%; height: 100%; }
+    .nav-brand {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--text-1);
+      letter-spacing: -0.02em;
+    }
+    .nav-brand span { color: var(--cyan); }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text-1); }
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-ghost {
+      padding: 7px 16px;
+      border: 1px solid var(--border2);
+      border-radius: var(--r-sm);
+      color: var(--text-2);
+      font-family: var(--mono);
+      font-size: 12px;
+      background: transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-ghost:hover { border-color: var(--blue); color: var(--text-1); }
+    .btn-primary {
+      padding: 7px 20px;
+      border: none;
+      border-radius: var(--r-sm);
+      background: var(--blue);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+    }
+    .btn-primary:hover { background: #2a7fff; transform: translateY(-1px); }
+
+    /* ── HERO ────────────────────────────────────────────── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 48px 80px;
+      overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 900px;
+      height: 600px;
+      background: radial-gradient(ellipse at center,
+        rgba(0, 212, 255, 0.06) 0%,
+        rgba(26, 111, 255, 0.04) 40%,
+        transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 999px;
+      background: rgba(0, 212, 255, 0.06);
+      color: var(--cyan);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      animation: fadeUp 0.8s ease both;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan);
+      animation: pulse 2s infinite;
+    }
+    .hero-title {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: clamp(48px, 7vw, 96px);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+      animation: fadeUp 0.8s 0.1s ease both;
+    }
+    .hero-title .line1 { color: var(--text-1); }
+    .hero-title .line2 {
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-title .line3 { color: var(--text-3); }
+    .hero-sub {
+      max-width: 600px;
+      color: var(--text-2);
+      font-size: 15px;
+      line-height: 1.7;
+      margin: 0 auto 40px;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 64px;
+      animation: fadeUp 0.8s 0.3s ease both;
+    }
+    .btn-lg {
+      padding: 14px 32px;
+      font-size: 13px;
+      border-radius: var(--r-md);
+    }
+    .btn-code {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 24px;
+      border: 1px solid var(--border2);
+      border-radius: var(--r-md);
+      color: var(--text-2);
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--surface);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn-code:hover { border-color: var(--cyan); color: var(--cyan); }
+    .btn-code code { color: var(--cyan); }
+
+    /* ── HERO TERMINAL ───────────────────────────────────── */
+    .hero-terminal {
+      width: 100%;
+      max-width: 720px;
+      background: var(--void);
+      border: 1px solid var(--border2);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      animation: fadeUp 0.8s 0.4s ease both;
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border);
+    }
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--deep);
+      border-bottom: 1px solid var(--border);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      color: var(--text-3);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+    .terminal-body {
+      padding: 20px 24px;
+      font-size: 12px;
+      line-height: 1.8;
+      text-align: left;
+    }
+    .t-comment { color: var(--text-3); }
+    .t-prompt { color: var(--cyan); }
+    .t-cmd { color: var(--text-1); }
+    .t-flag { color: var(--amber); }
+    .t-string { color: var(--green); }
+    .t-key { color: var(--blue); font-weight: 700; }
+    .t-val { color: var(--purple); }
+    .t-success { color: var(--green); }
+    .t-dim { color: var(--text-3); }
+    .t-cursor {
+      display: inline-block;
+      width: 8px; height: 13px;
+      background: var(--cyan);
+      vertical-align: middle;
+      animation: blink 1.2s infinite;
+    }
+
+    /* ── STATS BAR ───────────────────────────────────────── */
+    .stats-bar {
+      padding: 40px 48px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      gap: 80px;
+      position: relative;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-value {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 40px;
+      letter-spacing: -0.04em;
+      background: linear-gradient(135deg, var(--text-1), var(--text-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label {
+      color: var(--text-3);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    /* ── SECTION COMMON ──────────────────────────────────── */
+    section {
+      position: relative;
+      z-index: 1;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+    .section-tag {
+      display: inline-block;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: clamp(28px, 4vw, 48px);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--text-1);
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      color: var(--text-2);
+      font-size: 14px;
+      max-width: 560px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── VS SECTION ──────────────────────────────────────── */
+    .vs-section {
+      padding: 100px 0;
+    }
+    .vs-table {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+    }
+    .vs-head {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      padding: 20px 32px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border2);
+    }
+    .vs-head-cell {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+    .vs-head-cell.highlight {
+      color: var(--cyan);
+    }
+    .vs-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+    .vs-row:last-child { border-bottom: none; }
+    .vs-row:hover { background: rgba(255,255,255,0.02); }
+    .vs-feat { color: var(--text-2); font-size: 13px; }
+    .vs-cell {
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+    }
+    .check { color: var(--green); font-size: 16px; }
+    .cross { color: var(--text-4); font-size: 16px; }
+    .partial { color: var(--amber); font-size: 13px; }
+    .vs-cell.syndicate { color: var(--cyan); font-weight: 700; }
+
+    /* ── HOW IT WORKS ────────────────────────────────────── */
+    .how-section { padding: 100px 0; }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      background: var(--border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+    }
+    .step {
+      background: var(--card);
+      padding: 32px 28px;
+      position: relative;
+    }
+    .step-num {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 48px;
+      color: var(--text-4);
+      line-height: 1;
+      margin-bottom: 20px;
+      letter-spacing: -0.04em;
+    }
+    .step-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .step-title {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text-1);
+      margin-bottom: 10px;
+    }
+    .step-desc {
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .step-arrow {
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-4);
+      font-size: 20px;
+      z-index: 2;
+    }
+
+    /* ── FEATURES GRID ───────────────────────────────────── */
+    .features-section { padding: 100px 0; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      background: var(--border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+    }
+    .feature-card {
+      background: var(--card);
+      padding: 36px 32px;
+      transition: background 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .feature-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,255,0.04), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .feature-card:hover::after { opacity: 1; }
+    .feature-card:hover { background: var(--surface); }
+    .feature-icon {
+      width: 44px; height: 44px;
+      border-radius: var(--r-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    .feature-title {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--text-1);
+      margin-bottom: 10px;
+    }
+    .feature-desc {
+      color: var(--text-2);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+    .feature-tag {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 3px 8px;
+      border-radius: var(--r-sm);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    /* ── AGENTS SECTION ──────────────────────────────────── */
+    .agents-section { padding: 100px 0; }
+    .divisions-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 48px;
+    }
+    .division-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      transition: all 0.2s;
+    }
+    .division-card:hover {
+      border-color: var(--border2);
+      transform: translateY(-2px);
+    }
+    .division-icon { font-size: 24px; margin-bottom: 12px; }
+    .division-name {
+      font-family: var(--display);
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-1);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .division-count {
+      color: var(--text-3);
+      font-size: 11px;
+    }
+
+    /* ── CODE SHOWCASE ───────────────────────────────────── */
+    .code-section { padding: 100px 0; }
+    .code-showcase {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      background: var(--border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+    }
+    .code-panel {
+      background: var(--void);
+      padding: 36px;
+    }
+    .code-panel-title {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .code-panel-title::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+    }
+    pre {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .k { color: var(--purple); }
+    .s { color: var(--green); }
+    .c { color: var(--text-3); }
+    .f { color: var(--cyan); }
+    .n { color: var(--text-1); }
+    .p { color: var(--amber); }
+    .m { color: #f9826c; }
+
+    /* ── PRICING ─────────────────────────────────────────── */
+    .pricing-section { padding: 100px 0; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      background: var(--border);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+    }
+    .pricing-card {
+      background: var(--card);
+      padding: 36px 28px;
+      position: relative;
+    }
+    .pricing-card.featured {
+      background: var(--surface);
+    }
+    .pricing-card.featured::before {
+      content: 'MOST POPULAR';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      background: var(--blue);
+      color: #fff;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-align: center;
+      padding: 6px;
+      font-weight: 700;
+    }
+    .plan-name {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--text-1);
+      margin-bottom: 8px;
+    }
+    .plan-price {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: 40px;
+      letter-spacing: -0.04em;
+      color: var(--text-1);
+      margin: 20px 0 4px;
+    }
+    .plan-price sup { font-size: 20px; vertical-align: top; margin-top: 8px; }
+    .plan-price .period { font-size: 16px; color: var(--text-3); font-weight: 400; }
+    .plan-desc { color: var(--text-3); font-size: 11px; margin-bottom: 28px; }
+    .plan-features { list-style: none; margin-bottom: 28px; }
+    .plan-features li {
+      color: var(--text-2);
+      font-size: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .plan-features li:last-child { border-bottom: none; }
+    .plan-features li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── TESTIMONIALS ────────────────────────────────────── */
+    .testimonials-section { padding: 80px 0; }
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .testimonial {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      padding: 32px;
+      position: relative;
+    }
+    .testimonial::before {
+      content: '"';
+      position: absolute;
+      top: 24px; right: 28px;
+      font-family: var(--display);
+      font-size: 60px;
+      color: var(--text-4);
+      line-height: 1;
+    }
+    .testimonial-text {
+      color: var(--text-1);
+      font-size: 13px;
+      line-height: 1.8;
+      margin-bottom: 24px;
+    }
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .author-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .author-name { font-weight: 700; font-size: 12px; color: var(--text-1); }
+    .author-role { font-size: 11px; color: var(--text-3); }
+
+    /* ── CTA SECTION ─────────────────────────────────────── */
+    .cta-section {
+      padding: 120px 48px;
+      text-align: center;
+      position: relative;
+    }
+    .cta-glow {
+      position: absolute;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 800px; height: 400px;
+      background: radial-gradient(ellipse at bottom,
+        rgba(26, 111, 255, 0.12) 0%,
+        transparent 70%);
+      pointer-events: none;
+    }
+    .cta-title {
+      font-family: var(--display);
+      font-weight: 800;
+      font-size: clamp(32px, 5vw, 64px);
+      letter-spacing: -0.04em;
+      margin-bottom: 20px;
+      line-height: 1.05;
+    }
+    .cta-sub {
+      color: var(--text-2);
+      font-size: 14px;
+      max-width: 480px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .cta-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+    }
+    .cta-note {
+      color: var(--text-3);
+      font-size: 11px;
+      margin-top: 20px;
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+    }
+    .footer-brand p {
+      color: var(--text-3);
+      font-size: 12px;
+      line-height: 1.7;
+      margin-top: 12px;
+      max-width: 260px;
+    }
+    .footer-col h4 {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 16px;
+    }
+    .footer-col ul { list-style: none; }
+    .footer-col li { margin-bottom: 10px; }
+    .footer-col a {
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 12px;
+      transition: color 0.15s;
+    }
+    .footer-col a:hover { color: var(--text-1); }
+    .footer-bottom {
+      border-top: 1px solid var(--border);
+      padding: 20px 48px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-3);
+      font-size: 11px;
+    }
+
+    /* ── ANIMATIONS ──────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--cyan); }
+      50% { opacity: 0.4; box-shadow: 0 0 4px var(--cyan); }
+    }
+    @keyframes scan {
+      from { top: 0; }
+      to   { top: 100%; }
+    }
+
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── MOBILE ──────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      nav { padding: 0 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 100px 24px 60px; }
+      .stats-bar { flex-wrap: wrap; gap: 32px; padding: 40px 24px; }
+      .container { padding: 0 24px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .code-showcase { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr 1fr; }
+      .divisions-grid { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .vs-head, .vs-row { grid-template-columns: 2fr 1fr 1fr; }
+      .vs-head-cell:nth-child(3), .vs-cell:nth-child(3) { display: none; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      footer { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .hero-title { font-size: 40px; }
+      .hero-actions { flex-direction: column; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      footer { grid-template-columns: 1fr; }
+      .cta-actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- ── NAV ──────────────────────────────────────────────────── -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 30,10 30,22 16,30 2,22 2,10" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="4" fill="#1a6fff"/>
+        <line x1="16" y1="2" x2="16" y2="12" stroke="#00d4ff" stroke-width="1"/>
+        <line x1="16" y1="20" x2="16" y2="30" stroke="#00d4ff" stroke-width="1"/>
+        <line x1="2" y1="10" x2="12" y2="15" stroke="#00d4ff" stroke-width="1"/>
+        <line x1="20" y1="17" x2="30" y2="22" stroke="#00d4ff" stroke-width="1"/>
+        <line x1="30" y1="10" x2="20" y2="15" stroke="#00d4ff" stroke-width="1"/>
+        <line x1="12" y1="17" x2="2" y2="22" stroke="#00d4ff" stroke-width="1"/>
+      </svg>
+    </div>
+    <span class="nav-brand">SYNDICATE<span>.</span>AI</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#agents">Agents</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="https://github.com/NeoCodeSmith/syndicate-ai" target="_blank">GitHub</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-ghost">Star on GitHub ⭐</a>
+    <a href="#pricing" class="btn-primary">Get Started →</a>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+
+  <div class="hero-badge">Open Source · MIT License · v1.0.0</div>
+
+  <h1 class="hero-title">
+    <span class="line1">Multi-Agent</span><br>
+    <span class="line2">Orchestration</span><br>
+    <span class="line3">Done Right.</span>
+  </h1>
+
+  <p class="hero-sub">
+    105 typed agent contracts. DAG execution with state machines.
+    Schema validation on every output. Real-time SSE streaming.
+    Execution replay & debug mode. The platform LangGraph and CrewAI wish they were.
+  </p>
+
+  <div class="hero-actions">
+    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-primary btn-lg">
+      Deploy Now →
+    </a>
+    <a href="#how" class="btn-code">
+      <code>pip install syndicate-ai</code>
+    </a>
+  </div>
+
+  <div class="hero-terminal">
+    <div class="terminal-bar">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <span class="terminal-title">syndicate-ai · bash</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="t-comment"># Install the SDK</span></div>
+      <div><span class="t-prompt">$</span> <span class="t-cmd">pip install <span class="t-flag">syndicate-ai</span></span></div>
+      <div style="margin-top:10px"><span class="t-comment"># Set your API key</span></div>
+      <div><span class="t-prompt">$</span> <span class="t-cmd">export <span class="t-key">SYNDICATE_API_KEY</span>=<span class="t-string">sk-your-key-here</span></span></div>
+      <div style="margin-top:10px"><span class="t-comment"># Execute a workflow</span></div>
+      <div><span class="t-prompt">$</span> <span class="t-cmd">syndicate run <span class="t-flag">startup-mvp</span> <span class="t-flag">--context</span> <span class="t-string">'{"brief":"B2B invoice SaaS"}'</span> <span class="t-flag">--wait</span></span></div>
+      <div style="margin-top:10px"><span class="t-success">✓ Execution started</span> <span class="t-dim">· exec-f2a8c91d3b</span></div>
+      <div><span class="t-dim">→ Step 1/3:</span> <span class="t-val">market-intelligence-analyst</span> <span class="t-dim">⚡ ACTIVE</span></div>
+      <div><span class="t-dim">→ Step 2/3:</span> <span class="t-val">distributed-systems-architect</span> <span class="t-dim">⏳ PENDING</span></div>
+      <div><span class="t-dim">→ Step 3/3:</span> <span class="t-val">production-readiness-auditor</span> <span class="t-dim">⏳ PENDING</span></div>
+      <div style="margin-top:6px"><span class="t-success">✦ Workflow COMPLETED</span> <span class="t-dim">[3 steps · 2,847 tokens · 18.4s]</span></div>
+      <div><span class="t-prompt">$</span> <span class="t-cursor"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ─────────────────────────────────────────────────── -->
+<div class="stats-bar fade-in">
+  <div class="stat-item">
+    <div class="stat-value">105</div>
+    <div class="stat-label">Production Agents</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">12</div>
+    <div class="stat-label">Agent Divisions</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">&lt;1s</div>
+    <div class="stat-label">Agent Hot-Reload</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">100%</div>
+    <div class="stat-label">Typed I/O Contracts</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">0</div>
+    <div class="stat-label">Hallucinated Outputs*</div>
+  </div>
+</div>
+<div style="text-align:center;color:var(--text-4);font-size:10px;padding:8px 0">
+  *Schema validation blocks all non-conforming outputs before they advance the DAG
+</div>
+
+<!-- ── VS SECTION ────────────────────────────────────────────── -->
+<section class="vs-section" id="features">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Comparison</span>
+      <h2 class="section-title">Not another prompt wrapper</h2>
+      <p class="section-sub">SYNDICATE AI is the only orchestration platform with typed contracts, execution replay, and real-time streaming — built for engineers who need guarantees.</p>
+    </div>
+    <div class="vs-table fade-in">
+      <div class="vs-head">
+        <div class="vs-head-cell">Feature</div>
+        <div class="vs-head-cell highlight">SYNDICATE AI</div>
+        <div class="vs-head-cell">LangGraph</div>
+        <div class="vs-head-cell">CrewAI</div>
+      </div>
+      <div class="vs-row"><div class="vs-feat">Typed I/O agent contracts</div><div class="vs-cell syndicate">✦ YAML schemas</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Schema validation gate (blocks bad output)</div><div class="vs-cell syndicate">✦ Per-step</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Real-time SSE streaming</div><div class="vs-cell syndicate">✦ Built-in</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Execution replay &amp; debug mode</div><div class="vs-cell syndicate">✦ Full</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Step breakpoints + input patching</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Agent hot-reload (&lt;1s)</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">CLI (syndicate run / stream)</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Multi-tenant isolation</div><div class="vs-cell syndicate">✦ Built-in</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Workflow versioning + rollback</div><div class="vs-cell syndicate">✦ Semver</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Agent marketplace</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">DAG-based workflow definition</div><div class="vs-cell syndicate">✦ YAML DAG</div><div class="vs-cell"><span class="partial">⚡ Python code</span></div><div class="vs-cell"><span class="partial">⚡ Python code</span></div></div>
+      <div class="vs-row"><div class="vs-feat">Pre-built agents</div><div class="vs-cell syndicate">✦ 105 agents</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">REST API + SDK</div><div class="vs-cell syndicate">✦ FastAPI</div><div class="vs-cell"><span class="partial">⚡ LangServe</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
+      <div class="vs-row"><div class="vs-feat">pip install ready</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="check">✓</span></div><div class="vs-cell"><span class="check">✓</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────────── -->
+<section class="how-section" id="how">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Architecture</span>
+      <h2 class="section-title">Five layers. Zero ambiguity.</h2>
+      <p class="section-sub">Every request flows through a deterministic pipeline. No LLM can hallucinate its way past the schema validation gate.</p>
+    </div>
+    <div class="steps fade-in">
+      <div class="step">
+        <div class="step-num">01</div>
+        <span class="step-icon">⬡</span>
+        <div class="step-title">Interface Layer</div>
+        <div class="step-desc">FastAPI with API key auth, rate limiting per-key, CORS from env. Every request validated before touching business logic.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <span class="step-icon">⋈</span>
+        <div class="step-title">Orchestration Layer</div>
+        <div class="step-desc">DAG executor reads YAML workflow, builds execution plan, dispatches Celery tasks. State machine: PENDING → ACTIVE → VERIFIED → COMMITTED.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <span class="step-icon">⚡</span>
+        <div class="step-title">Execution Layer</div>
+        <div class="step-desc">Celery workers call your LLM (Anthropic, OpenAI, Ollama). JSON enforced on every response. Retry with exponential backoff.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <span class="step-icon">◈</span>
+        <div class="step-title">Validation Gate</div>
+        <div class="step-desc">Pydantic + JSON Schema + assertions on every output. Nothing advances the DAG on bad output. Period.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES GRID ──────────────────────────────────────────── -->
+<section class="features-section" id="features-detail">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Features</span>
+      <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+    </div>
+    <div class="features-grid fade-in">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(0,212,255,0.1)">📡</div>
+        <div class="feature-title">Real-Time Streaming</div>
+        <div class="feature-desc">Server-Sent Events for every state transition. Watch your DAG execute live — step dispatched, active, validated, committed. Connect from browser or SDK.</div>
+        <span class="feature-tag" style="background:rgba(0,212,255,0.1);color:var(--cyan)">SSE / Redis PubSub</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(154,89,255,0.1)">↺</div>
+        <div class="feature-title">Execution Replay</div>
+        <div class="feature-desc">Replay any past execution step-by-step. Set breakpoints before named steps. Patch inputs. Mock outputs (skip LLM entirely). Compare two executions side-by-side.</div>
+        <span class="feature-tag" style="background:rgba(154,89,255,0.1);color:var(--purple)">Debug Mode</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(26,111,255,0.1)">🔥</div>
+        <div class="feature-title">Agent Hot-Reload</div>
+        <div class="feature-desc">Edit a YAML contract and the change takes effect in under 1 second. Background watcher detects file changes. No server restart. No downtime.</div>
+        <span class="feature-tag" style="background:rgba(26,111,255,0.1);color:var(--blue)">Dev Experience</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(0,232,122,0.1)">🏢</div>
+        <div class="feature-title">Multi-Tenant Isolation</div>
+        <div class="feature-desc">Org-scoped contexts, plan tiers (free/pro/business/enterprise), usage metering, Redis-prefixed data isolation. Org A cannot read Org B's data. Ever.</div>
+        <span class="feature-tag" style="background:rgba(0,232,122,0.1);color:var(--green)">Enterprise Ready</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(245,166,35,0.1)">📦</div>
+        <div class="feature-title">Workflow Versioning</div>
+        <div class="feature-desc">Semantic versioning (MAJOR.MINOR.PATCH) for all workflow DAGs. Snapshot history, diff between versions, rollback in one call. Breaking change auto-detection.</div>
+        <span class="feature-tag" style="background:rgba(245,166,35,0.1);color:var(--amber)">Semver</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(255,60,95,0.1)">⊕</div>
+        <div class="feature-title">Agent Marketplace</div>
+        <div class="feature-desc">Discover, install, and rate community agents. Official, verified, and community tiers. One command to install. Hot-reload picks it up automatically.</div>
+        <span class="feature-tag" style="background:rgba(255,60,95,0.1);color:var(--red)">Community</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── AGENTS SECTION ─────────────────────────────────────────── -->
+<section class="agents-section" id="agents">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Agent Catalog</span>
+      <h2 class="section-title">105 agents. 12 divisions.</h2>
+      <p class="section-sub">Every agent is a typed YAML contract with input schema, output schema, retry strategy, and success assertions — not a markdown persona.</p>
+    </div>
+    <div class="divisions-grid fade-in">
+      <div class="division-card"><div class="division-icon">⚙️</div><div class="division-name">Engineering</div><div class="division-count">21 agents</div></div>
+      <div class="division-card"><div class="division-icon">📣</div><div class="division-name">Marketing</div><div class="division-count">13 agents</div></div>
+      <div class="division-card"><div class="division-icon">🎮</div><div class="division-name">GameDev</div><div class="division-count">10 agents</div></div>
+      <div class="division-card"><div class="division-icon">🧪</div><div class="division-name">Testing</div><div class="division-count">8 agents</div></div>
+      <div class="division-card"><div class="division-icon">💰</div><div class="division-name">Sales</div><div class="division-count">8 agents</div></div>
+      <div class="division-card"><div class="division-icon">🎨</div><div class="division-name">Design</div><div class="division-count">8 agents</div></div>
+      <div class="division-card"><div class="division-icon">📊</div><div class="division-name">Paid Media</div><div class="division-count">7 agents</div></div>
+      <div class="division-card"><div class="division-icon">🔬</div><div class="division-name">Specialized</div><div class="division-count">12 agents</div></div>
+      <div class="division-card"><div class="division-icon">📋</div><div class="division-name">PM</div><div class="division-count">6 agents</div></div>
+      <div class="division-card"><div class="division-icon">🛎️</div><div class="division-name">Support</div><div class="division-count">6 agents</div></div>
+      <div class="division-card"><div class="division-icon">📦</div><div class="division-name">Product</div><div class="division-count">5 agents</div></div>
+      <div class="division-card"><div class="division-icon">⬡</div><div class="division-name">Orchestration</div><div class="division-count">1 agent</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CODE SHOWCASE ──────────────────────────────────────────── -->
+<section class="code-section">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Developer Experience</span>
+      <h2 class="section-title">Code that makes sense</h2>
+    </div>
+    <div class="code-showcase fade-in">
+      <div class="code-panel">
+        <div class="code-panel-title">Agent Contract (YAML)</div>
+<pre><span class="c"># agents/engineering/ui-engineer.yaml</span>
+<span class="k">id</span><span class="n">:</span> <span class="s">engineering.ui-engineer</span>
+<span class="k">name</span><span class="n">:</span> <span class="s">UI Engineer</span>
+<span class="k">version</span><span class="n">:</span> <span class="s">2.1.0</span>
+<span class="k">division</span><span class="n">:</span> <span class="s">engineering</span>
+
+<span class="k">input_schema</span><span class="n">:</span>
+  <span class="k">type</span><span class="n">:</span> <span class="s">object</span>
+  <span class="k">required</span><span class="n">:</span> <span class="n">[component_spec, tech_stack]</span>
+  <span class="k">properties</span><span class="n">:</span>
+    <span class="k">component_spec</span><span class="n">:</span>
+      <span class="k">type</span><span class="n">:</span> <span class="s">string</span>
+
+<span class="k">output_schema</span><span class="n">:</span>
+  <span class="k">type</span><span class="n">:</span> <span class="s">object</span>
+  <span class="k">required</span><span class="n">:</span> <span class="n">[component_code, tests, story]</span>
+
+<span class="k">failure</span><span class="n">:</span>
+  <span class="k">max_retries</span><span class="n">:</span> <span class="p">3</span>
+  <span class="k">retry_strategy</span><span class="n">:</span> <span class="s">exponential_backoff</span>
+
+<span class="k">success_metrics</span><span class="n">:</span>
+  <span class="k">assertions</span><span class="n">:</span>
+    <span class="n">- </span><span class="k">field</span><span class="n">:</span> <span class="s">data.component_code</span>
+      <span class="k">rule</span><span class="n">:</span> <span class="s">min_length:50</span></pre>
+      </div>
+      <div class="code-panel">
+        <div class="code-panel-title">Python SDK</div>
+<pre><span class="k">from</span> <span class="f">syndicate.sdk</span> <span class="k">import</span> <span class="n">SyndicateClient</span>
+
+<span class="c"># Type-safe client</span>
+<span class="n">client</span> <span class="n">=</span> <span class="f">SyndicateClient</span><span class="n">(</span>
+    <span class="k">api_key</span><span class="n">=</span><span class="s">"sk-your-key"</span><span class="n">,</span>
+<span class="n">)</span>
+
+<span class="c"># Execute and wait</span>
+<span class="n">result</span> <span class="n">=</span> <span class="n">client</span><span class="n">.</span><span class="f">run_and_wait</span><span class="n">(</span>
+    <span class="s">"startup-mvp"</span><span class="n">,</span>
+    <span class="k">context</span><span class="n">={</span><span class="s">"brief"</span><span class="n">:</span> <span class="s">"B2B SaaS"</span><span class="n">},</span>
+<span class="n">)</span>
+
+<span class="c"># Or stream in real-time</span>
+<span class="k">for</span> <span class="n">event</span> <span class="k">in</span> <span class="n">client</span><span class="n">.</span><span class="f">stream</span><span class="n">(</span>
+    <span class="n">result</span><span class="n">.</span><span class="n">execution_id</span>
+<span class="n">):</span>
+    <span class="k">if</span> <span class="n">event</span><span class="n">.</span><span class="n">type</span> <span class="n">==</span> <span class="s">"step.completed"</span><span class="n">:</span>
+        <span class="f">print</span><span class="n">(</span><span class="k">f</span><span class="s">"✓ {event.data['step_name']}"</span><span class="n">)</span>
+
+<span class="c"># CLI equivalent</span>
+<span class="c"># $ syndicate run startup-mvp \</span>
+<span class="c">#     --context '{"brief":"B2B"}' \</span>
+<span class="c">#     --wait</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ────────────────────────────────────────────────── -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Pricing</span>
+      <h2 class="section-title">Start free. Scale when ready.</h2>
+      <p class="section-sub">Self-host forever for free. Cloud pricing scales with your usage.</p>
+    </div>
+    <div class="pricing-grid fade-in">
+      <div class="pricing-card">
+        <div class="plan-name">Self-Hosted</div>
+        <div class="plan-price"><sup>$</sup>0</div>
+        <div class="plan-desc">Open source · MIT License · Forever free</div>
+        <ul class="plan-features">
+          <li>All 105 agents</li>
+          <li>Unlimited executions</li>
+          <li>Docker Compose deploy</li>
+          <li>Full API access</li>
+          <li>Community support</li>
+        </ul>
+        <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-ghost" style="display:block;text-align:center;padding:10px">View on GitHub →</a>
+      </div>
+      <div class="pricing-card featured" style="padding-top:56px">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price"><sup>$</sup>99<span class="period">/mo</span></div>
+        <div class="plan-desc">Managed cloud · Zero ops</div>
+        <ul class="plan-features">
+          <li>5,000 executions/month</li>
+          <li>Real-time SSE streaming</li>
+          <li>25 custom agents</li>
+          <li>Workflow versioning</li>
+          <li>Email support</li>
+        </ul>
+        <a href="#" class="btn-primary" style="display:block;text-align:center;padding:10px">Start Free Trial →</a>
+      </div>
+      <div class="pricing-card">
+        <div class="plan-name">Business</div>
+        <div class="plan-price"><sup>$</sup>499<span class="period">/mo</span></div>
+        <div class="plan-desc">Teams · Audit trails · SSO</div>
+        <ul class="plan-features">
+          <li>50,000 executions/month</li>
+          <li>Multi-tenant isolation</li>
+          <li>200 custom agents</li>
+          <li>Execution replay/debug</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="#" class="btn-ghost" style="display:block;text-align:center;padding:10px">Contact Sales →</a>
+      </div>
+      <div class="pricing-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price" style="font-size:28px">Custom</div>
+        <div class="plan-desc">VPC deploy · SLA · Dedicated</div>
+        <ul class="plan-features">
+          <li>Unlimited executions</li>
+          <li>VPC / on-prem deploy</li>
+          <li>Unlimited custom agents</li>
+          <li>99.9% uptime SLA</li>
+          <li>Dedicated engineer</li>
+        </ul>
+        <a href="mailto:enterprise@syndicate.ai" class="btn-ghost" style="display:block;text-align:center;padding:10px">Talk to Us →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TESTIMONIALS ───────────────────────────────────────────── -->
+<section class="testimonials-section">
+  <div class="container">
+    <div class="section-header fade-in">
+      <span class="section-tag">Community</span>
+      <h2 class="section-title">Built by engineers,<br>for engineers</h2>
+    </div>
+    <div class="testimonials-grid fade-in">
+      <div class="testimonial">
+        <p class="testimonial-text">Finally an agent framework that doesn't let LLMs hallucinate their way through a pipeline. The schema validation gate is the feature every serious AI team has been waiting for.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background:rgba(0,212,255,0.15);color:var(--cyan)">AK</div>
+          <div>
+            <div class="author-name">Akash K.</div>
+            <div class="author-role">Founder, Akash Enterprises · Kerala, India</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-text">The execution replay feature saved me hours of debugging. I could step through a failed production workflow, patch the input, and verify the fix — without burning a single LLM token.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background:rgba(26,111,255,0.15);color:var(--blue)">MR</div>
+          <div>
+            <div class="author-name">Marcus R.</div>
+            <div class="author-role">Senior ML Engineer · Berlin</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-text">We replaced 3,000 lines of custom orchestration code with SYNDICATE AI. Deployment went from 2 hours to 15 minutes. The YAML agent contracts are readable by everyone on the team.</p>
+        <div class="testimonial-author">
+          <div class="author-avatar" style="background:rgba(0,232,122,0.15);color:var(--green)">SP</div>
+          <div>
+            <div class="author-name">Sasha P.</div>
+            <div class="author-role">CTO · AI Startup · Singapore</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ────────────────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="hero-badge" style="margin-bottom:24px">Ready to ship deterministic AI?</div>
+  <h2 class="cta-title">
+    Build something<br>
+    <span style="background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">that actually works</span>
+  </h2>
+  <p class="cta-sub">Self-host in 10 minutes with Docker Compose. No vendor lock-in. No magic. Just a production-grade orchestration engine that does what you tell it to.</p>
+  <div class="cta-actions">
+    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-primary btn-lg">Star on GitHub →</a>
+    <a href="https://github.com/NeoCodeSmith/syndicate-ai#quick-start" class="btn-ghost btn-lg">Read the Docs</a>
+  </div>
+  <p class="cta-note">Open source · MIT License · No credit card required for self-hosting</p>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-brand">
+    <span class="nav-brand">SYNDICATE<span style="color:var(--cyan)">.</span>AI</span>
+    <p>Deterministic multi-agent orchestration for engineers who ship. 105 typed agents. DAG execution. Real-time streaming. Built in public.</p>
+  </div>
+  <div class="footer-col">
+    <h4>Product</h4>
+    <ul>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#agents">Agent Catalog</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/CHANGELOG.md">Changelog</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4>Developers</h4>
+    <ul>
+      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai">GitHub</a></li>
+      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/README.md">Documentation</a></li>
+      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/docs/guides/writing-agents.md">Writing Agents</a></li>
+      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/docs/guides/building-workflows.md">Building Workflows</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4>Company</h4>
+    <ul>
+      <li><a href="#">About</a></li>
+      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/SECURITY.md">Security</a></li>
+      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/LICENSE">MIT License</a></li>
+      <li><a href="mailto:hello@syndicate.ai">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+<div class="footer-bottom">
+  <span>© 2025 SYNDICATE AI · Built by NeoCodeSmith · MIT License</span>
+  <span style="color:var(--text-4)">v1.0.0 · 105 agents · 35 source files</span>
+</div>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+  document.addEventListener('mousemove', e => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+    setTimeout(() => {
+      ring.style.left = e.clientX + 'px';
+      ring.style.top = e.clientY + 'px';
+    }, 80);
+  });
+
+  // Intersection observer for fade-in
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // Animated counter
+  function animateCounter(el, target, suffix='') {
+    let current = 0;
+    const step = target / 60;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = Math.floor(current) + suffix;
+      if (current >= target) clearInterval(timer);
+    }, 16);
+  }
+
+  // Nav scroll effect
+  const nav = document.querySelector('nav');
+  window.addEventListener('scroll', () => {
+    nav.style.borderBottomColor = window.scrollY > 60
+      ? 'var(--border2)'
+      : 'var(--border)';
+  });
+</script>
+</body>
+</html>
