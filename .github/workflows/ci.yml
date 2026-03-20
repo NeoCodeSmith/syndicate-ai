@@ -17,7 +17,29 @@ env:
 
 jobs:
 
-  # ─── Lint + Type Check ─────────────────────────────────────────────────────
+  # ─── Validate Agent Contracts ───────────────────────────────────────────────
+  validate-agents:
+    name: Validate Agent Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install pydantic pyyaml jsonschema
+
+      - name: Validate all agent YAML contracts
+        run: python scripts/validate_agents.py
+
+      - name: Validate all workflow YAML DAGs
+        run: python scripts/validate_workflows.py
+
+  # ─── Lint + Type Check ──────────────────────────────────────────────────────
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
@@ -31,7 +53,7 @@ jobs:
           cache: pip
 
       - name: Install dev dependencies
-        run: pip install ruff==0.15.6 mypy pyyaml types-PyYAML types-redis pydantic
+        run: pip install ruff==0.15.6 mypy==1.13.0 pyyaml types-PyYAML types-redis pydantic pydantic-settings
 
       - name: Lint with ruff
         run: ruff check src/ agents/ --output-format=github
@@ -99,38 +121,15 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           CELERY_BROKER_URL: redis://localhost:6379/1
           LLM_API_KEY: test-key-placeholder
-          LLM_MODEL: gpt-4o-mini
+          LLM_MODEL: claude-opus-4-6
           SYNDICATE_API_KEYS: sk-test-key
-        run: |
-          pytest tests/unit/ -v
+        run: pytest tests/unit/ -v
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
           file: coverage.xml
           fail_ci_if_error: false
-
-  # ─── Validate Agent YAML Contracts ─────────────────────────────────────────
-  validate-agents:
-    name: Validate Agent Contracts
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: pip
-
-      - name: Install dependencies
-        run: pip install pydantic pyyaml jsonschema
-
-      - name: Validate all agent YAML contracts
-        run: python scripts/validate_agents.py
-
-      - name: Validate all workflow YAML DAGs
-        run: python scripts/validate_workflows.py
 
   # ─── Build Docker Image ─────────────────────────────────────────────────────
   docker:
@@ -178,12 +177,18 @@ jobs:
           platforms: linux/amd64,linux/arm64
 
   # ─── Security Scan ──────────────────────────────────────────────────────────
+  # Scans the SOURCE TREE (not the container image) for:
+  #   - Known CVEs in Python dependencies (via requirements.txt)
+  #   - Misconfigurations in Dockerfile and docker-compose.yml
+  #   - Secrets accidentally committed to the repo
+  # Using filesystem scan avoids image pull auth issues entirely.
+  # Results go to GitHub Security tab. Job never blocks deployment.
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: docker
-    if: github.ref == 'refs/heads/main'
-    # Permissions needed to upload SARIF results to GitHub Security tab
+    needs: [validate-agents]
+    if: github.event_name == 'push'
+
     permissions:
       contents: read
       security-events: write
@@ -191,25 +196,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Scan the published Docker image for OS + library CVEs.
-      # --ignore-unfixed: only report CVEs that have an available fix
-      #   (standard industry practice — unfixable CVEs have no remediation action)
-      # --exit-code 0: report findings to GitHub Security tab (non-blocking)
-      # --format sarif: upload results to GitHub Security tab for tracking
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@0.30.0
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main
+          scan-type: fs
+          scan-ref: .
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '0'  # non-blocking: report findings, never gate deployment
           trivyignores: .trivyignore
+          exit-code: '0'
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      - name: Upload results to GitHub Security tab
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
-          category: container-security
+          category: source-security

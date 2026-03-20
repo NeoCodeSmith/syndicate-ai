@@ -70,3 +70,15 @@ logs/
 *.pyc
 dist/
 node_modules/
+
+# ─── Cache directories (never commit) ─────────────────────────────────────────
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+coverage.xml
+.coverage
+htmlcov/
+
+# ─── Generated frontend dirs (scaffold artifacts) ─────────────────────────────
+frontend/src/components/{*}
+frontend/src/{*}
