@@ -1,1421 +1,680 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+  <meta name="theme-color" content="#02040a"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>SYNDICATE AI — Deterministic Multi-Agent Orchestration</title>
-  <meta name="description" content="The only multi-agent orchestration platform with typed contracts, DAG execution, real-time streaming, and execution replay. Built for engineers who ship.">
-  <meta property="og:title" content="SYNDICATE AI — Deterministic Multi-Agent Orchestration">
-  <meta property="og:description" content="105 production agents. DAG execution. Schema validation. Real-time SSE streaming. Deploy today.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-
+  <meta name="description" content="105 typed agent contracts. 5-layer pipeline. Schema validation gate. Real-time streaming. Execution replay."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
   <style>
-    /* ── DESIGN TOKENS ──────────────────────────────────── */
     :root {
-      --black:    #040508;
-      --void:     #070b11;
-      --deep:     #0a1020;
-      --surface:  #0e1828;
-      --card:     #111e30;
-      --border:   #162844;
-      --border2:  #1e3855;
+      --bg0:#02040a; --bg1:#060c18; --bg2:#091222; --bg3:#0c1830; --bg4:#0f1e3a;
+      --b1:#162a4a; --b2:#1e3a62; --b3:#2a4e80;
+      --cyan:#00e5ff; --blue:#2979ff; --green:#00e676; --amber:#ffab40; --red:#ff5252; --purple:#b388ff;
+      /* TEXT — ALL WCAG AA COMPLIANT on dark backgrounds */
+      --t1:#f0f8ff;  /* primary — near white */
+      --t2:#c8ddf0;  /* secondary — clearly readable */
+      --t3:#90b8d8;  /* tertiary — readable */
+      --t4:#5a8aaa;  /* muted */
+      --t5:#2d5878;  /* very muted decorative only */
+      --mono:'JetBrains Mono','Fira Code',monospace;
+      --disp:'Syne',system-ui,sans-serif;
+      --r4:4px; --r8:8px; --r14:14px; --r20:20px; --r28:28px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg0);color:var(--t1);font-family:var(--mono);font-size:14px;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+    ::selection{background:rgba(0,229,255,.2);color:var(--t1)}
+    a{color:inherit;text-decoration:none}
+    ::-webkit-scrollbar{width:5px}
+    ::-webkit-scrollbar-track{background:var(--bg1)}
+    ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.022) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;z-index:0}
 
-      --blue:     #1a6fff;
-      --blue-dim: #0f4aaa;
-      --cyan:     #00d4ff;
-      --cyan-dim: #005a6e;
-      --green:    #00e87a;
-      --amber:    #f5a623;
-      --red:      #ff3c5f;
-      --purple:   #9b59ff;
+    /* ── LAYOUT ── */
+    .wrap{max-width:1200px;margin:0 auto;padding:0 40px}
+    .section{padding:96px 0;position:relative;z-index:1}
+    .section-alt{background:var(--bg1)}
+    .sh{text-align:center;margin-bottom:64px}
+    .tag{display:inline-block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);margin-bottom:14px}
+    .htitle{font-family:var(--disp);font-weight:800;font-size:clamp(26px,4.5vw,52px);line-height:1.05;letter-spacing:-.03em;color:var(--t1);margin-bottom:14px}
+    .hsub{font-size:15px;color:var(--t2);line-height:1.75;max-width:560px}
+    .sh .hsub{margin:0 auto}
 
-      --text-1:   #f0f6ff;
-      --text-2:   #7a9ab5;
-      --text-3:   #3a5570;
-      --text-4:   #1e3350;
+    /* ── BUTTONS ── */
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--mono);font-weight:700;letter-spacing:.04em;border-radius:var(--r8);cursor:pointer;transition:all .18s;border:none;white-space:nowrap}
+    .btn-sm{font-size:11px;padding:7px 16px}
+    .btn-md{font-size:12px;padding:10px 20px}
+    .btn-lg{font-size:13px;padding:14px 32px}
+    .btn-xl{font-size:14px;padding:16px 40px}
+    .btn-primary{background:var(--blue);color:#fff}
+    .btn-primary:hover{background:#3d8bff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(41,121,255,.35)}
+    .btn-cyan{background:var(--cyan);color:var(--bg0)}
+    .btn-cyan:hover{background:#33ebff;transform:translateY(-1px)}
+    .btn-ghost{background:transparent;border:1px solid var(--b2);color:var(--t2)}
+    .btn-ghost:hover{border-color:var(--cyan);color:var(--t1)}
+    .btn-surf{background:var(--bg3);border:1px solid var(--b1);color:var(--t2)}
+    .btn-surf:hover{background:var(--bg4);color:var(--t1)}
 
-      --mono:     'Space Mono', 'Courier New', monospace;
-      --display:  'Syne', sans-serif;
+    /* ── NAV ── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:900;height:60px;background:rgba(2,4,10,.92);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 40px;gap:32px}
+    .nav-logo{display:flex;align-items:center;gap:12px;flex-shrink:0}
+    .nav-hex{width:30px;height:30px}
+    .nav-wm{font-family:var(--disp);font-weight:800;font-size:17px;letter-spacing:-.02em;color:var(--t1)}
+    .nav-wm em{color:var(--cyan);font-style:normal}
+    .nav-links{display:flex;align-items:center;gap:32px;list-style:none;margin-left:24px;flex:1}
+    .nav-links a{font-size:12px;letter-spacing:.06em;color:var(--t3);transition:color .15s}
+    .nav-links a:hover{color:var(--t1)}
+    .nav-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+    .ham{display:none;background:none;border:none;cursor:pointer;padding:8px;flex-direction:column;gap:5px}
+    .ham span{display:block;width:22px;height:2px;background:var(--t2);border-radius:99px;transition:all .3s}
+    .mob-nav{display:none;position:fixed;top:60px;left:0;right:0;background:rgba(2,4,10,.97);backdrop-filter:blur(24px);border-bottom:1px solid var(--b1);padding:20px 24px;z-index:800;flex-direction:column;gap:4px}
+    .mob-nav.open{display:flex}
+    .mob-nav a{font-size:14px;color:var(--t2);padding:12px 8px;border-bottom:1px solid var(--b1)}
+    .mob-nav a:last-child{border-bottom:none}
 
-      --r-sm: 4px;
-      --r-md: 8px;
-      --r-lg: 12px;
-      --r-xl: 20px;
-    }
+    /* ── HERO ── */
+    .hero{position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 40px 80px;overflow:hidden}
+    .hero-glow{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:min(900px,100vw);height:500px;background:radial-gradient(ellipse,rgba(0,229,255,.07) 0%,rgba(41,121,255,.05) 40%,transparent 70%);pointer-events:none}
+    .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border:1px solid rgba(0,229,255,.4);border-radius:999px;background:rgba(0,229,255,.07);font-size:11px;letter-spacing:.12em;color:var(--cyan);margin-bottom:32px;animation:fadeUp .7s ease both}
+    .badge::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:pdot 2s infinite}
+    .h1{font-family:var(--disp);font-weight:800;font-size:clamp(44px,8vw,100px);line-height:.93;letter-spacing:-.05em;margin-bottom:24px;animation:fadeUp .7s .1s ease both}
+    .h1 .t1{color:var(--t1);display:block}
+    .h1 .t2{display:block;background:linear-gradient(110deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .h1 .t3{color:var(--t4);display:block}
+    .hero-sub{font-size:15px;color:var(--t2);line-height:1.75;max-width:580px;margin:0 auto 40px;animation:fadeUp .7s .2s ease both}
+    .hero-acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin-bottom:64px;animation:fadeUp .7s .3s ease both}
+    .pip-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 24px;background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r8);font-family:var(--mono);font-size:12px;color:var(--t2);cursor:pointer;transition:all .18s;text-decoration:none}
+    .pip-btn code{color:var(--cyan);font-size:12px}
+    .pip-btn:hover{border-color:var(--cyan);color:var(--t1)}
 
-    /* ── RESET & BASE ────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: var(--black);
-      color: var(--text-1);
-      font-family: var(--mono);
-      font-size: 14px;
-      line-height: 1.6;
-      overflow-x: hidden;
-      cursor: none;
-    }
-    ::selection { background: rgba(0, 212, 255, 0.25); }
+    /* ── TERMINAL ── */
+    .term{width:100%;max-width:720px;background:var(--bg1);border:1px solid var(--b2);border-radius:var(--r20);overflow:hidden;animation:fadeUp .7s .4s ease both;box-shadow:0 40px 100px rgba(0,0,0,.7)}
+    .term-bar{display:flex;align-items:center;gap:7px;padding:12px 18px;background:var(--bg2);border-bottom:1px solid var(--b1)}
+    .dot{width:11px;height:11px;border-radius:50%}
+    .dr{background:#ff5f57}.dy{background:#febc2e}.dg{background:#28c840}
+    .term-title{flex:1;text-align:center;font-size:11px;color:var(--t4);letter-spacing:.05em}
+    .term-body{padding:22px 26px;text-align:left}
+    .term-body > div{line-height:1.9;font-size:12px}
+    .tc{color:var(--t4)} .tp{color:var(--cyan)} .tk{color:var(--t1)} .tf{color:var(--amber)} .ts{color:var(--green)} .tv{color:var(--purple)} .tg{color:var(--green);font-weight:700} .td{color:var(--t3)} .tcr{display:inline-block;width:8px;height:14px;background:var(--cyan);vertical-align:middle;animation:blink 1.1s infinite}
 
-    /* ── CUSTOM CURSOR ───────────────────────────────────── */
-    #cursor {
-      width: 8px; height: 8px;
-      background: var(--cyan);
-      border-radius: 50%;
-      position: fixed;
-      pointer-events: none;
-      z-index: 9999;
-      transform: translate(-50%, -50%);
-      transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
-    }
-    #cursor-ring {
-      width: 32px; height: 32px;
-      border: 1px solid rgba(0, 212, 255, 0.4);
-      border-radius: 50%;
-      position: fixed;
-      pointer-events: none;
-      z-index: 9998;
-      transform: translate(-50%, -50%);
-      transition: transform 0.12s ease, width 0.3s, height 0.3s;
-    }
-    a:hover ~ #cursor, button:hover ~ #cursor { width: 14px; height: 14px; }
+    /* ── STATS ── */
+    .stats{border-top:1px solid var(--b1);border-bottom:1px solid var(--b1);padding:40px 40px;display:flex;flex-wrap:wrap;justify-content:center;gap:40px 64px}
+    .stat-i{text-align:center}
+    .stat-v{font-family:var(--disp);font-weight:800;font-size:clamp(34px,5vw,52px);letter-spacing:-.05em;color:var(--t1);line-height:1}
+    .stat-l{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--t3);margin-top:6px}
+    .stat-note{text-align:center;font-size:11px;color:var(--t4);padding:8px 40px}
 
-    /* ── GRID NOISE BACKGROUND ───────────────────────────── */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(26, 111, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(26, 111, 255, 0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none;
-      z-index: 0;
-    }
+    /* ── VS TABLE ── */
+    .vs-wrap{border:1px solid var(--b1);border-radius:var(--r20);overflow:hidden;overflow-x:auto}
+    .vs-inner{min-width:580px}
+    .vs-hd{display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;background:var(--bg3);border-bottom:1px solid var(--b2)}
+    .vs-hc{padding:16px 22px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--t3)}
+    .vs-hc.hl{color:var(--cyan)}
+    .vs-row{display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;border-bottom:1px solid var(--b1);transition:background .15s}
+    .vs-row:last-child{border-bottom:none}
+    .vs-row:hover{background:rgba(255,255,255,.02)}
+    .vs-f{padding:14px 22px;font-size:13px;color:var(--t2);display:flex;align-items:center}
+    .vs-c{padding:14px 22px;font-size:13px;display:flex;align-items:center}
+    .cy{color:var(--cyan);font-weight:700} .cn{color:var(--t5)} .ca{color:var(--amber);font-size:12px}
 
-    /* ── NAV ─────────────────────────────────────────────── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 60px;
-      background: rgba(4, 5, 8, 0.85);
-      backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 48px;
-      z-index: 500;
-    }
-    .nav-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      text-decoration: none;
-    }
-    .nav-logo-mark {
-      width: 32px; height: 32px;
-      position: relative;
-    }
-    .nav-logo-mark svg { width: 100%; height: 100%; }
-    .nav-brand {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: 18px;
-      color: var(--text-1);
-      letter-spacing: -0.02em;
-    }
-    .nav-brand span { color: var(--cyan); }
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-      list-style: none;
-    }
-    .nav-links a {
-      color: var(--text-2);
-      text-decoration: none;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transition: color 0.15s;
-    }
-    .nav-links a:hover { color: var(--text-1); }
-    .nav-cta {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .btn-ghost {
-      padding: 7px 16px;
-      border: 1px solid var(--border2);
-      border-radius: var(--r-sm);
-      color: var(--text-2);
-      font-family: var(--mono);
-      font-size: 12px;
-      background: transparent;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.15s;
-    }
-    .btn-ghost:hover { border-color: var(--blue); color: var(--text-1); }
-    .btn-primary {
-      padding: 7px 20px;
-      border: none;
-      border-radius: var(--r-sm);
-      background: var(--blue);
-      color: #fff;
-      font-family: var(--mono);
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.15s;
-      letter-spacing: 0.04em;
-    }
-    .btn-primary:hover { background: #2a7fff; transform: translateY(-1px); }
+    /* ── 5 LAYERS ── */
+    .layers{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;background:var(--b1);border-radius:var(--r20);overflow:hidden}
+    .lcard{background:var(--bg2);padding:28px 20px;position:relative;transition:background .2s}
+    .lcard:hover{background:var(--bg3)}
+    .lcard:not(:last-child)::after{content:'→';position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:var(--t5);font-size:18px;z-index:2}
+    .lnum{font-family:var(--disp);font-weight:800;font-size:40px;letter-spacing:-.05em;color:var(--t5);line-height:1;margin-bottom:14px}
+    .lion{font-size:22px;margin-bottom:12px}
+    .lname{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--t1);margin-bottom:8px}
+    .ldesc{font-size:11px;color:var(--t2);line-height:1.7}
+    .lbadge{display:inline-block;margin-top:12px;padding:3px 8px;border-radius:var(--r4);font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 
-    /* ── HERO ────────────────────────────────────────────── */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 48px 80px;
-      overflow: hidden;
-    }
-    .hero-glow {
-      position: absolute;
-      top: 10%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 900px;
-      height: 600px;
-      background: radial-gradient(ellipse at center,
-        rgba(0, 212, 255, 0.06) 0%,
-        rgba(26, 111, 255, 0.04) 40%,
-        transparent 70%);
-      pointer-events: none;
-    }
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 14px;
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      border-radius: 999px;
-      background: rgba(0, 212, 255, 0.06);
-      color: var(--cyan);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 32px;
-      animation: fadeUp 0.8s ease both;
-    }
-    .hero-badge::before {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--cyan);
-      box-shadow: 0 0 8px var(--cyan);
-      animation: pulse 2s infinite;
-    }
-    .hero-title {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: clamp(48px, 7vw, 96px);
-      line-height: 0.95;
-      letter-spacing: -0.04em;
-      margin-bottom: 24px;
-      animation: fadeUp 0.8s 0.1s ease both;
-    }
-    .hero-title .line1 { color: var(--text-1); }
-    .hero-title .line2 {
-      background: linear-gradient(135deg, var(--cyan), var(--blue));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-title .line3 { color: var(--text-3); }
-    .hero-sub {
-      max-width: 600px;
-      color: var(--text-2);
-      font-size: 15px;
-      line-height: 1.7;
-      margin: 0 auto 40px;
-      animation: fadeUp 0.8s 0.2s ease both;
-    }
-    .hero-actions {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      justify-content: center;
-      margin-bottom: 64px;
-      animation: fadeUp 0.8s 0.3s ease both;
-    }
-    .btn-lg {
-      padding: 14px 32px;
-      font-size: 13px;
-      border-radius: var(--r-md);
-    }
-    .btn-code {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 13px 24px;
-      border: 1px solid var(--border2);
-      border-radius: var(--r-md);
-      color: var(--text-2);
-      font-family: var(--mono);
-      font-size: 12px;
-      background: var(--surface);
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.15s;
-    }
-    .btn-code:hover { border-color: var(--cyan); color: var(--cyan); }
-    .btn-code code { color: var(--cyan); }
+    /* ── FEATURES ── */
+    .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--b1);border-radius:var(--r20);overflow:hidden}
+    .fcard{background:var(--bg2);padding:34px 28px;transition:background .2s;position:relative;overflow:hidden}
+    .fcard::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--al,var(--cyan)),transparent);opacity:0;transition:opacity .3s}
+    .fcard:hover{background:var(--bg3)}
+    .fcard:hover::before{opacity:1}
+    .fico{width:44px;height:44px;border-radius:var(--r8);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:18px}
+    .fname{font-family:var(--disp);font-weight:700;font-size:17px;color:var(--t1);margin-bottom:9px}
+    .fdesc{font-size:12px;color:var(--t2);line-height:1.8}
+    .ftag{display:inline-block;margin-top:14px;padding:3px 10px;border-radius:var(--r4);font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 
-    /* ── HERO TERMINAL ───────────────────────────────────── */
-    .hero-terminal {
-      width: 100%;
-      max-width: 720px;
-      background: var(--void);
-      border: 1px solid var(--border2);
-      border-radius: var(--r-lg);
-      overflow: hidden;
-      animation: fadeUp 0.8s 0.4s ease both;
-      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--border);
-    }
-    .terminal-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 16px;
-      background: var(--deep);
-      border-bottom: 1px solid var(--border);
-    }
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .dot-r { background: #ff5f57; }
-    .dot-y { background: #febc2e; }
-    .dot-g { background: #28c840; }
-    .terminal-title {
-      flex: 1;
-      text-align: center;
-      color: var(--text-3);
-      font-size: 11px;
-      letter-spacing: 0.05em;
-    }
-    .terminal-body {
-      padding: 20px 24px;
-      font-size: 12px;
-      line-height: 1.8;
-      text-align: left;
-    }
-    .t-comment { color: var(--text-3); }
-    .t-prompt { color: var(--cyan); }
-    .t-cmd { color: var(--text-1); }
-    .t-flag { color: var(--amber); }
-    .t-string { color: var(--green); }
-    .t-key { color: var(--blue); font-weight: 700; }
-    .t-val { color: var(--purple); }
-    .t-success { color: var(--green); }
-    .t-dim { color: var(--text-3); }
-    .t-cursor {
-      display: inline-block;
-      width: 8px; height: 13px;
-      background: var(--cyan);
-      vertical-align: middle;
-      animation: blink 1.2s infinite;
-    }
+    /* ── DIVISIONS ── */
+    .divs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .dcard{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r14);padding:18px;transition:all .2s}
+    .dcard:hover{background:var(--bg3);border-color:var(--b2);transform:translateY(-2px)}
+    .dico{font-size:20px;margin-bottom:8px}
+    .dname{font-family:var(--disp);font-weight:700;font-size:13px;color:var(--t1);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+    .dct{font-size:11px;color:var(--t3)}
 
-    /* ── STATS BAR ───────────────────────────────────────── */
-    .stats-bar {
-      padding: 40px 48px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: center;
-      gap: 80px;
-      position: relative;
-    }
-    .stat-item {
-      text-align: center;
-    }
-    .stat-value {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: 40px;
-      letter-spacing: -0.04em;
-      background: linear-gradient(135deg, var(--text-1), var(--text-2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .stat-label {
-      color: var(--text-3);
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-top: 4px;
-    }
+    /* ── CODE ── */
+    .code-split{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--b1);border-radius:var(--r20);overflow:hidden}
+    .cpane{background:var(--bg1);padding:30px 28px}
+    .cpane-hd{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--t3);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+    .cpane-hd::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+    pre{font-family:var(--mono);font-size:12px;line-height:1.85;overflow-x:auto;tab-size:2}
+    .ck{color:var(--purple)} .cs{color:var(--green)} .cc{color:var(--t4)} .cf{color:var(--cyan)} .cn{color:var(--t1)} .cp{color:var(--amber)}
 
-    /* ── SECTION COMMON ──────────────────────────────────── */
-    section {
-      position: relative;
-      z-index: 1;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 48px;
-    }
-    .section-header {
-      text-align: center;
-      margin-bottom: 64px;
-    }
-    .section-tag {
-      display: inline-block;
-      font-size: 10px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--cyan);
-      margin-bottom: 16px;
-    }
-    .section-title {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: clamp(28px, 4vw, 48px);
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      color: var(--text-1);
-      margin-bottom: 16px;
-    }
-    .section-sub {
-      color: var(--text-2);
-      font-size: 14px;
-      max-width: 560px;
-      margin: 0 auto;
-      line-height: 1.7;
-    }
+    /* ── PRICING ── */
+    .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--b1);border-radius:var(--r20);overflow:hidden}
+    .pcard{background:var(--bg2);padding:34px 24px;position:relative}
+    .pcard.feat{background:var(--bg3)}
+    .fbanner{display:none;position:absolute;top:0;left:0;right:0;background:var(--blue);color:#fff;font-size:9px;letter-spacing:.2em;text-align:center;padding:7px;font-weight:700;font-family:var(--mono)}
+    .pcard.feat .fbanner{display:block}
+    .pcard.feat{padding-top:50px}
+    .pname{font-family:var(--disp);font-weight:800;font-size:20px;color:var(--t1);margin-bottom:4px}
+    .ptag{font-size:10px;color:var(--t3);letter-spacing:.06em;margin-bottom:18px}
+    .pprice{font-family:var(--disp);font-weight:800;font-size:42px;letter-spacing:-.05em;color:var(--t1);line-height:1;margin-bottom:4px}
+    .pprice sup{font-size:20px;vertical-align:top;margin-top:7px}
+    .pprice .per{font-size:16px;color:var(--t3);font-weight:500}
+    .pbill{font-size:11px;color:var(--t4);margin-bottom:24px;line-height:1.5}
+    .pfeats{list-style:none;margin-bottom:24px}
+    .pfeats li{font-size:12px;color:var(--t2);padding:7px 0;border-bottom:1px solid var(--b1);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+    .pfeats li:last-child{border-bottom:none}
+    .pfeats li::before{content:'\2713';color:var(--green);font-weight:700;flex-shrink:0;margin-top:1px}
+    .pfeats li.lim::before{content:'\25B3';color:var(--amber)}
+    .pfeats li.na::before{content:'\2014';color:var(--t5)}
+    .pcta{display:block;width:100%;text-align:center;padding:11px}
+    .pnote{margin-top:24px;text-align:center;font-size:12px;color:var(--t3);line-height:1.6;padding:0 20px}
 
-    /* ── VS SECTION ──────────────────────────────────────── */
-    .vs-section {
-      padding: 100px 0;
-    }
-    .vs-table {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r-xl);
-      overflow: hidden;
-    }
-    .vs-head {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      padding: 20px 32px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border2);
-    }
-    .vs-head-cell {
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-3);
-    }
-    .vs-head-cell.highlight {
-      color: var(--cyan);
-    }
-    .vs-row {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      padding: 16px 32px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.15s;
-    }
-    .vs-row:last-child { border-bottom: none; }
-    .vs-row:hover { background: rgba(255,255,255,0.02); }
-    .vs-feat { color: var(--text-2); font-size: 13px; }
-    .vs-cell {
-      display: flex;
-      align-items: center;
-      font-size: 13px;
-    }
-    .check { color: var(--green); font-size: 16px; }
-    .cross { color: var(--text-4); font-size: 16px; }
-    .partial { color: var(--amber); font-size: 13px; }
-    .vs-cell.syndicate { color: var(--cyan); font-weight: 700; }
+    /* ── TESTIMONIALS ── */
+    .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .tcard{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r20);padding:28px;position:relative}
+    .tq{position:absolute;top:18px;right:22px;font-family:var(--disp);font-size:52px;color:var(--t5);line-height:1}
+    .ttext{font-size:13px;color:var(--t2);line-height:1.8;margin-bottom:22px}
+    .tauth{display:flex;align-items:center;gap:12px}
+    .tav{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+    .tname{font-weight:700;font-size:12px;color:var(--t1)}
+    .trole{font-size:11px;color:var(--t3)}
 
-    /* ── HOW IT WORKS ────────────────────────────────────── */
-    .how-section { padding: 100px 0; }
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 2px;
-      background: var(--border);
-      border-radius: var(--r-xl);
-      overflow: hidden;
-    }
-    .step {
-      background: var(--card);
-      padding: 32px 28px;
-      position: relative;
-    }
-    .step-num {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: 48px;
-      color: var(--text-4);
-      line-height: 1;
-      margin-bottom: 20px;
-      letter-spacing: -0.04em;
-    }
-    .step-icon {
-      font-size: 28px;
-      margin-bottom: 16px;
-      display: block;
-    }
-    .step-title {
-      font-family: var(--display);
-      font-weight: 700;
-      font-size: 18px;
-      color: var(--text-1);
-      margin-bottom: 10px;
-    }
-    .step-desc {
-      color: var(--text-2);
-      font-size: 12px;
-      line-height: 1.7;
-    }
-    .step-arrow {
-      position: absolute;
-      right: -10px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-4);
-      font-size: 20px;
-      z-index: 2;
-    }
+    /* ── CTA ── */
+    .cta{padding:96px 40px;text-align:center;position:relative}
+    .cta-glow{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:min(800px,100vw);height:400px;background:radial-gradient(ellipse at bottom,rgba(41,121,255,.14) 0%,transparent 70%);pointer-events:none}
+    .cta-h2{font-family:var(--disp);font-weight:800;font-size:clamp(30px,5vw,68px);letter-spacing:-.04em;line-height:1.02;margin-bottom:20px}
+    .cta-h2 .grad{background:linear-gradient(110deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .cta-sub{font-size:15px;color:var(--t2);max-width:480px;margin:0 auto 40px;line-height:1.7}
+    .cta-acts{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:20px}
+    .cta-note{font-size:11px;color:var(--t4)}
 
-    /* ── FEATURES GRID ───────────────────────────────────── */
-    .features-section { padding: 100px 0; }
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 2px;
-      background: var(--border);
-      border-radius: var(--r-xl);
-      overflow: hidden;
-    }
-    .feature-card {
-      background: var(--card);
-      padding: 36px 32px;
-      transition: background 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .feature-card::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(0,212,255,0.04), transparent);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .feature-card:hover::after { opacity: 1; }
-    .feature-card:hover { background: var(--surface); }
-    .feature-icon {
-      width: 44px; height: 44px;
-      border-radius: var(--r-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      margin-bottom: 20px;
-    }
-    .feature-title {
-      font-family: var(--display);
-      font-weight: 700;
-      font-size: 18px;
-      color: var(--text-1);
-      margin-bottom: 10px;
-    }
-    .feature-desc {
-      color: var(--text-2);
-      font-size: 12px;
-      line-height: 1.8;
-    }
-    .feature-tag {
-      display: inline-block;
-      margin-top: 16px;
-      padding: 3px 8px;
-      border-radius: var(--r-sm);
-      font-size: 9px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
+    /* ── FOOTER ── */
+    footer{border-top:1px solid var(--b1);padding:48px 48px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px}
+    .fab .wm{font-family:var(--disp);font-weight:800;font-size:16px;color:var(--t1);margin-bottom:12px}
+    .fab .wm em{color:var(--cyan);font-style:normal}
+    .fab p{font-size:12px;color:var(--t3);line-height:1.75;max-width:240px}
+    .fc h4{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--t3);margin-bottom:14px}
+    .fc ul{list-style:none}
+    .fc li{margin-bottom:10px}
+    .fc a{font-size:12px;color:var(--t3);transition:color .15s}
+    .fc a:hover{color:var(--t1)}
+    .fbot{border-top:1px solid var(--b1);padding:18px 48px;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--t4)}
 
-    /* ── AGENTS SECTION ──────────────────────────────────── */
-    .agents-section { padding: 100px 0; }
-    .divisions-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 48px;
-    }
-    .division-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r-lg);
-      padding: 20px;
-      transition: all 0.2s;
-    }
-    .division-card:hover {
-      border-color: var(--border2);
-      transform: translateY(-2px);
-    }
-    .division-icon { font-size: 24px; margin-bottom: 12px; }
-    .division-name {
-      font-family: var(--display);
-      font-weight: 700;
-      font-size: 14px;
-      color: var(--text-1);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 4px;
-    }
-    .division-count {
-      color: var(--text-3);
-      font-size: 11px;
-    }
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    @keyframes pdot{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.6)}50%{box-shadow:0 0 0 4px rgba(0,229,255,0)}}
+    .rev{opacity:0;transform:translateY(18px);transition:opacity .65s ease,transform .65s ease}
+    .rev.in{opacity:1;transform:none}
 
-    /* ── CODE SHOWCASE ───────────────────────────────────── */
-    .code-section { padding: 100px 0; }
-    .code-showcase {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2px;
-      background: var(--border);
-      border-radius: var(--r-xl);
-      overflow: hidden;
+    /* ── RESPONSIVE ── */
+    @media(min-width:1400px){.wrap{max-width:1320px}}
+    @media(max-width:1023px){
+      nav{padding:0 24px}
+      .nav-links{gap:20px}
+      .layers{grid-template-columns:repeat(3,1fr)}
+      .lcard:nth-child(3)::after{display:none}
+      .feats{grid-template-columns:1fr 1fr}
+      .pgrid{grid-template-columns:1fr 1fr}
+      footer{grid-template-columns:1fr 1fr;gap:32px}
     }
-    .code-panel {
-      background: var(--void);
-      padding: 36px;
+    @media(max-width:899px){
+      .nav-links{display:none}
+      .ham{display:flex}
+      .wrap,.hero,.stats,.stat-note,.cta,.fbot{padding-left:24px;padding-right:24px}
+      .layers{grid-template-columns:repeat(2,1fr)}
+      .lcard::after{display:none!important}
+      .divs{grid-template-columns:repeat(3,1fr)}
+      .code-split{grid-template-columns:1fr}
+      .tgrid{grid-template-columns:1fr 1fr}
+      .vs-hd,.vs-row{grid-template-columns:2fr 1fr 1fr}
+      .vs-hc:nth-child(4),.vs-c:nth-child(4){display:none}
     }
-    .code-panel-title {
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-3);
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    @media(max-width:767px){
+      .section{padding:64px 0}
+      .htitle{font-size:clamp(22px,7vw,34px)}
+      .layers{grid-template-columns:1fr 1fr}
+      .feats{grid-template-columns:1fr}
+      .pgrid{grid-template-columns:1fr}
+      .divs{grid-template-columns:repeat(2,1fr)}
+      .tgrid{grid-template-columns:1fr}
+      footer{grid-template-columns:1fr 1fr}
+      .fbot{flex-direction:column;gap:8px;text-align:center}
     }
-    .code-panel-title::before {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--cyan);
+    @media(max-width:480px){
+      nav{padding:0 16px}
+      .nav-wm{font-size:15px}
+      .hero{padding:90px 16px 48px}
+      .hero-acts{flex-direction:column;width:100%}
+      .hero-acts .btn,.pip-btn{width:100%;justify-content:center}
+      .wrap{padding:0 16px}
+      .stats{padding:32px 16px;gap:28px 40px}
+      .stat-note{padding:8px 16px}
+      .layers{grid-template-columns:1fr}
+      .divs{grid-template-columns:1fr 1fr}
+      pre{font-size:11px}
+      footer{grid-template-columns:1fr;padding:32px 16px}
+      .fbot{padding:16px 16px}
+      .vs-hd,.vs-row{grid-template-columns:1.6fr 1fr 1fr}
+      .vs-f,.vs-c{padding:11px 10px;font-size:12px}
     }
-    pre {
-      font-family: var(--mono);
-      font-size: 12px;
-      line-height: 1.8;
-      overflow-x: auto;
+    @media(max-width:375px){.h1{font-size:36px}.htitle{font-size:24px}}
+    @supports(padding:max(0px)){
+      nav{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
+      .hero{padding-top:max(90px,calc(68px + env(safe-area-inset-top)))}
+      footer,.fbot{padding-left:max(32px,env(safe-area-inset-left));padding-right:max(32px,env(safe-area-inset-right));padding-bottom:max(20px,env(safe-area-inset-bottom))}
     }
-    .k { color: var(--purple); }
-    .s { color: var(--green); }
-    .c { color: var(--text-3); }
-    .f { color: var(--cyan); }
-    .n { color: var(--text-1); }
-    .p { color: var(--amber); }
-    .m { color: #f9826c; }
-
-    /* ── PRICING ─────────────────────────────────────────── */
-    .pricing-section { padding: 100px 0; }
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 2px;
-      background: var(--border);
-      border-radius: var(--r-xl);
-      overflow: hidden;
-    }
-    .pricing-card {
-      background: var(--card);
-      padding: 36px 28px;
-      position: relative;
-    }
-    .pricing-card.featured {
-      background: var(--surface);
-    }
-    .pricing-card.featured::before {
-      content: 'MOST POPULAR';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      background: var(--blue);
-      color: #fff;
-      font-size: 9px;
-      letter-spacing: 0.2em;
-      text-align: center;
-      padding: 6px;
-      font-weight: 700;
-    }
-    .plan-name {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: 20px;
-      color: var(--text-1);
-      margin-bottom: 8px;
-    }
-    .plan-price {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: 40px;
-      letter-spacing: -0.04em;
-      color: var(--text-1);
-      margin: 20px 0 4px;
-    }
-    .plan-price sup { font-size: 20px; vertical-align: top; margin-top: 8px; }
-    .plan-price .period { font-size: 16px; color: var(--text-3); font-weight: 400; }
-    .plan-desc { color: var(--text-3); font-size: 11px; margin-bottom: 28px; }
-    .plan-features { list-style: none; margin-bottom: 28px; }
-    .plan-features li {
-      color: var(--text-2);
-      font-size: 12px;
-      padding: 6px 0;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .plan-features li:last-child { border-bottom: none; }
-    .plan-features li::before {
-      content: '✓';
-      color: var(--green);
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    /* ── TESTIMONIALS ────────────────────────────────────── */
-    .testimonials-section { padding: 80px 0; }
-    .testimonials-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-    .testimonial {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r-xl);
-      padding: 32px;
-      position: relative;
-    }
-    .testimonial::before {
-      content: '"';
-      position: absolute;
-      top: 24px; right: 28px;
-      font-family: var(--display);
-      font-size: 60px;
-      color: var(--text-4);
-      line-height: 1;
-    }
-    .testimonial-text {
-      color: var(--text-1);
-      font-size: 13px;
-      line-height: 1.8;
-      margin-bottom: 24px;
-    }
-    .testimonial-author {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .author-avatar {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-    .author-name { font-weight: 700; font-size: 12px; color: var(--text-1); }
-    .author-role { font-size: 11px; color: var(--text-3); }
-
-    /* ── CTA SECTION ─────────────────────────────────────── */
-    .cta-section {
-      padding: 120px 48px;
-      text-align: center;
-      position: relative;
-    }
-    .cta-glow {
-      position: absolute;
-      bottom: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 800px; height: 400px;
-      background: radial-gradient(ellipse at bottom,
-        rgba(26, 111, 255, 0.12) 0%,
-        transparent 70%);
-      pointer-events: none;
-    }
-    .cta-title {
-      font-family: var(--display);
-      font-weight: 800;
-      font-size: clamp(32px, 5vw, 64px);
-      letter-spacing: -0.04em;
-      margin-bottom: 20px;
-      line-height: 1.05;
-    }
-    .cta-sub {
-      color: var(--text-2);
-      font-size: 14px;
-      max-width: 480px;
-      margin: 0 auto 40px;
-      line-height: 1.7;
-    }
-    .cta-actions {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      justify-content: center;
-    }
-    .cta-note {
-      color: var(--text-3);
-      font-size: 11px;
-      margin-top: 20px;
-    }
-
-    /* ── FOOTER ──────────────────────────────────────────── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 48px;
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 48px;
-    }
-    .footer-brand p {
-      color: var(--text-3);
-      font-size: 12px;
-      line-height: 1.7;
-      margin-top: 12px;
-      max-width: 260px;
-    }
-    .footer-col h4 {
-      font-size: 11px;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-3);
-      margin-bottom: 16px;
-    }
-    .footer-col ul { list-style: none; }
-    .footer-col li { margin-bottom: 10px; }
-    .footer-col a {
-      color: var(--text-2);
-      text-decoration: none;
-      font-size: 12px;
-      transition: color 0.15s;
-    }
-    .footer-col a:hover { color: var(--text-1); }
-    .footer-bottom {
-      border-top: 1px solid var(--border);
-      padding: 20px 48px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      color: var(--text-3);
-      font-size: 11px;
-    }
-
-    /* ── ANIMATIONS ──────────────────────────────────────── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--cyan); }
-      50% { opacity: 0.4; box-shadow: 0 0 4px var(--cyan); }
-    }
-    @keyframes scan {
-      from { top: 0; }
-      to   { top: 100%; }
-    }
-
-    .fade-in {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.7s ease, transform 0.7s ease;
-    }
-    .fade-in.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* ── MOBILE ──────────────────────────────────────────── */
-    @media (max-width: 900px) {
-      nav { padding: 0 24px; }
-      .nav-links { display: none; }
-      .hero { padding: 100px 24px 60px; }
-      .stats-bar { flex-wrap: wrap; gap: 32px; padding: 40px 24px; }
-      .container { padding: 0 24px; }
-      .features-grid { grid-template-columns: 1fr; }
-      .code-showcase { grid-template-columns: 1fr; }
-      .pricing-grid { grid-template-columns: 1fr 1fr; }
-      .divisions-grid { grid-template-columns: 1fr 1fr; }
-      .steps { grid-template-columns: 1fr 1fr; }
-      .vs-head, .vs-row { grid-template-columns: 2fr 1fr 1fr; }
-      .vs-head-cell:nth-child(3), .vs-cell:nth-child(3) { display: none; }
-      .testimonials-grid { grid-template-columns: 1fr; }
-      footer { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 600px) {
-      .hero-title { font-size: 40px; }
-      .hero-actions { flex-direction: column; }
-      .pricing-grid { grid-template-columns: 1fr; }
-      .steps { grid-template-columns: 1fr; }
-      footer { grid-template-columns: 1fr; }
-      .cta-actions { flex-direction: column; }
-    }
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
   </style>
 </head>
 <body>
 
-<!-- Custom cursor -->
-<div id="cursor"></div>
-<div id="cursor-ring"></div>
-
-<!-- ── NAV ──────────────────────────────────────────────────── -->
 <nav>
-  <a href="#" class="nav-logo">
-    <div class="nav-logo-mark">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="16,2 30,10 30,22 16,30 2,22 2,10" fill="none" stroke="#00d4ff" stroke-width="1.5"/>
-        <circle cx="16" cy="16" r="4" fill="#1a6fff"/>
-        <line x1="16" y1="2" x2="16" y2="12" stroke="#00d4ff" stroke-width="1"/>
-        <line x1="16" y1="20" x2="16" y2="30" stroke="#00d4ff" stroke-width="1"/>
-        <line x1="2" y1="10" x2="12" y2="15" stroke="#00d4ff" stroke-width="1"/>
-        <line x1="20" y1="17" x2="30" y2="22" stroke="#00d4ff" stroke-width="1"/>
-        <line x1="30" y1="10" x2="20" y2="15" stroke="#00d4ff" stroke-width="1"/>
-        <line x1="12" y1="17" x2="2" y2="22" stroke="#00d4ff" stroke-width="1"/>
-      </svg>
-    </div>
-    <span class="nav-brand">SYNDICATE<span>.</span>AI</span>
+  <a href="#" class="nav-logo" aria-label="SYNDICATE AI">
+    <svg class="nav-hex" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <polygon points="16,2 30,10 30,22 16,30 2,22 2,10" fill="none" stroke="#00e5ff" stroke-width="1.4"/>
+      <circle cx="16" cy="16" r="3.5" fill="#2979ff"/>
+      <line x1="16" y1="2" x2="16" y2="12" stroke="#00e5ff" stroke-width="1"/>
+      <line x1="16" y1="20" x2="16" y2="30" stroke="#00e5ff" stroke-width="1"/>
+      <line x1="2" y1="10" x2="12" y2="15" stroke="#00e5ff" stroke-width="1"/>
+      <line x1="20" y1="17" x2="30" y2="22" stroke="#00e5ff" stroke-width="1"/>
+      <line x1="30" y1="10" x2="20" y2="15" stroke="#00e5ff" stroke-width="1"/>
+      <line x1="12" y1="17" x2="2" y2="22" stroke="#00e5ff" stroke-width="1"/>
+    </svg>
+    <span class="nav-wm">SYNDICATE<em>.</em>AI</span>
   </a>
   <ul class="nav-links">
+    <li><a href="#vs">Compare</a></li>
+    <li><a href="#layers">Architecture</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#agents">Agents</a></li>
-    <li><a href="#how">How It Works</a></li>
     <li><a href="#pricing">Pricing</a></li>
-    <li><a href="https://github.com/NeoCodeSmith/syndicate-ai" target="_blank">GitHub</a></li>
+    <li><a href="https://github.com/NeoCodeSmith/syndicate-ai" target="_blank" rel="noopener">GitHub ↗</a></li>
   </ul>
-  <div class="nav-cta">
-    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-ghost">Star on GitHub ⭐</a>
-    <a href="#pricing" class="btn-primary">Get Started →</a>
+  <div class="nav-right">
+    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn btn-ghost btn-sm">⭐ Star</a>
+    <a href="#pricing" class="btn btn-primary btn-sm">Get Started</a>
+    <button class="ham" id="hamBtn" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
 
-<!-- ── HERO ─────────────────────────────────────────────────── -->
+<div class="mob-nav" id="mobNav">
+  <a href="#vs">Compare</a>
+  <a href="#layers">Architecture</a>
+  <a href="#features">Features</a>
+  <a href="#agents">Agents</a>
+  <a href="#pricing">Pricing</a>
+  <a href="https://github.com/NeoCodeSmith/syndicate-ai" target="_blank" rel="noopener">GitHub ↗</a>
+</div>
+
 <section class="hero">
-  <div class="hero-glow"></div>
-
-  <div class="hero-badge">Open Source · MIT License · v1.0.0</div>
-
-  <h1 class="hero-title">
-    <span class="line1">Multi-Agent</span><br>
-    <span class="line2">Orchestration</span><br>
-    <span class="line3">Done Right.</span>
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="badge">Open Source &middot; MIT &middot; v1.0.0</div>
+  <h1 class="h1">
+    <span class="t1">Multi-Agent</span>
+    <span class="t2">Orchestration</span>
+    <span class="t3">Done Right.</span>
   </h1>
-
-  <p class="hero-sub">
-    105 typed agent contracts. DAG execution with state machines.
-    Schema validation on every output. Real-time SSE streaming.
-    Execution replay & debug mode. The platform LangGraph and CrewAI wish they were.
-  </p>
-
-  <div class="hero-actions">
-    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-primary btn-lg">
-      Deploy Now →
-    </a>
-    <a href="#how" class="btn-code">
-      <code>pip install syndicate-ai</code>
-    </a>
+  <p class="hero-sub">105 typed agent contracts. 5-layer deterministic pipeline. Schema validation gates every output. Real-time SSE streaming. Execution replay &amp; debug mode. Built for engineers who need guarantees, not vibes.</p>
+  <div class="hero-acts">
+    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn btn-cyan btn-lg">Deploy Now &rarr;</a>
+    <a href="#pricing" class="btn btn-ghost btn-lg">See Pricing</a>
+    <a href="#" class="pip-btn" id="copyPip"><code>pip install syndicate-ai</code> <span id="copyIco">&#8856;</span></a>
   </div>
-
-  <div class="hero-terminal">
-    <div class="terminal-bar">
-      <div class="dot dot-r"></div>
-      <div class="dot dot-y"></div>
-      <div class="dot dot-g"></div>
-      <span class="terminal-title">syndicate-ai · bash</span>
+  <div class="term" role="figure" aria-label="CLI demo">
+    <div class="term-bar">
+      <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+      <span class="term-title">syndicate-ai &mdash; terminal</span>
     </div>
-    <div class="terminal-body">
-      <div><span class="t-comment"># Install the SDK</span></div>
-      <div><span class="t-prompt">$</span> <span class="t-cmd">pip install <span class="t-flag">syndicate-ai</span></span></div>
-      <div style="margin-top:10px"><span class="t-comment"># Set your API key</span></div>
-      <div><span class="t-prompt">$</span> <span class="t-cmd">export <span class="t-key">SYNDICATE_API_KEY</span>=<span class="t-string">sk-your-key-here</span></span></div>
-      <div style="margin-top:10px"><span class="t-comment"># Execute a workflow</span></div>
-      <div><span class="t-prompt">$</span> <span class="t-cmd">syndicate run <span class="t-flag">startup-mvp</span> <span class="t-flag">--context</span> <span class="t-string">'{"brief":"B2B invoice SaaS"}'</span> <span class="t-flag">--wait</span></span></div>
-      <div style="margin-top:10px"><span class="t-success">✓ Execution started</span> <span class="t-dim">· exec-f2a8c91d3b</span></div>
-      <div><span class="t-dim">→ Step 1/3:</span> <span class="t-val">market-intelligence-analyst</span> <span class="t-dim">⚡ ACTIVE</span></div>
-      <div><span class="t-dim">→ Step 2/3:</span> <span class="t-val">distributed-systems-architect</span> <span class="t-dim">⏳ PENDING</span></div>
-      <div><span class="t-dim">→ Step 3/3:</span> <span class="t-val">production-readiness-auditor</span> <span class="t-dim">⏳ PENDING</span></div>
-      <div style="margin-top:6px"><span class="t-success">✦ Workflow COMPLETED</span> <span class="t-dim">[3 steps · 2,847 tokens · 18.4s]</span></div>
-      <div><span class="t-prompt">$</span> <span class="t-cursor"></span></div>
+    <div class="term-body">
+      <div><span class="tc"># Install &amp; run your first workflow</span></div>
+      <div><span class="tp">$</span> <span class="tk">pip install </span><span class="tf">syndicate-ai</span></div>
+      <div style="margin-top:8px"><span class="tp">$</span> <span class="tk">syndicate run </span><span class="tf">startup-mvp</span> <span class="tf">--context</span> <span class="ts">'{"brief":"B2B SaaS"}'</span> <span class="tf">--wait</span></div>
+      <div style="margin-top:8px"><span class="tg">&check; Execution started</span> <span class="td">&nbsp;exec-f2a8c91d</span></div>
+      <div><span class="td">&nbsp;&nbsp;&rarr; 1/3 </span><span class="tv">market-intelligence-analyst</span><span class="td"> &nbsp;&#9889; ACTIVE</span></div>
+      <div><span class="td">&nbsp;&nbsp;&rarr; 2/3 </span><span class="tv">distributed-systems-architect</span><span class="td"> &nbsp;&#9203; PENDING</span></div>
+      <div><span class="td">&nbsp;&nbsp;&rarr; 3/3 </span><span class="tv">production-readiness-auditor</span><span class="td"> &nbsp;&#9203; PENDING</span></div>
+      <div style="margin-top:8px"><span class="tg">&diams; COMPLETED</span><span class="td"> [3 steps &middot; 2,847 tokens &middot; 18.4s]</span></div>
+      <div><span class="tp">$</span> <span class="tcr"></span></div>
     </div>
   </div>
 </section>
 
-<!-- ── STATS ─────────────────────────────────────────────────── -->
-<div class="stats-bar fade-in">
-  <div class="stat-item">
-    <div class="stat-value">105</div>
-    <div class="stat-label">Production Agents</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value">12</div>
-    <div class="stat-label">Agent Divisions</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value">&lt;1s</div>
-    <div class="stat-label">Agent Hot-Reload</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value">100%</div>
-    <div class="stat-label">Typed I/O Contracts</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-value">0</div>
-    <div class="stat-label">Hallucinated Outputs*</div>
-  </div>
+<div class="stats rev">
+  <div class="stat-i"><div class="stat-v">105</div><div class="stat-l">Production Agents</div></div>
+  <div class="stat-i"><div class="stat-v">12</div><div class="stat-l">Agent Divisions</div></div>
+  <div class="stat-i"><div class="stat-v">5</div><div class="stat-l">Execution Layers</div></div>
+  <div class="stat-i"><div class="stat-v">&lt;1s</div><div class="stat-l">Hot-Reload Time</div></div>
+  <div class="stat-i"><div class="stat-v">100%</div><div class="stat-l">Typed I/O Contracts</div></div>
 </div>
-<div style="text-align:center;color:var(--text-4);font-size:10px;padding:8px 0">
-  *Schema validation blocks all non-conforming outputs before they advance the DAG
-</div>
+<p class="stat-note">Schema validation blocks all non-conforming outputs before they advance the DAG &mdash; zero hallucinated outputs reach downstream steps</p>
 
-<!-- ── VS SECTION ────────────────────────────────────────────── -->
-<section class="vs-section" id="features">
-  <div class="container">
-    <div class="section-header fade-in">
-      <span class="section-tag">Comparison</span>
-      <h2 class="section-title">Not another prompt wrapper</h2>
-      <p class="section-sub">SYNDICATE AI is the only orchestration platform with typed contracts, execution replay, and real-time streaming — built for engineers who need guarantees.</p>
+<!-- COMPARISON -->
+<section class="section" id="vs">
+  <div class="wrap">
+    <div class="sh rev">
+      <span class="tag">Comparison</span>
+      <h2 class="htitle">Not another prompt wrapper</h2>
+      <p class="hsub">The only platform with typed contracts, 5-layer execution, replay mode, real-time streaming, and built-in debug tools.</p>
     </div>
-    <div class="vs-table fade-in">
-      <div class="vs-head">
-        <div class="vs-head-cell">Feature</div>
-        <div class="vs-head-cell highlight">SYNDICATE AI</div>
-        <div class="vs-head-cell">LangGraph</div>
-        <div class="vs-head-cell">CrewAI</div>
-      </div>
-      <div class="vs-row"><div class="vs-feat">Typed I/O agent contracts</div><div class="vs-cell syndicate">✦ YAML schemas</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Schema validation gate (blocks bad output)</div><div class="vs-cell syndicate">✦ Per-step</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Real-time SSE streaming</div><div class="vs-cell syndicate">✦ Built-in</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Execution replay &amp; debug mode</div><div class="vs-cell syndicate">✦ Full</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Step breakpoints + input patching</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Agent hot-reload (&lt;1s)</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">CLI (syndicate run / stream)</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Multi-tenant isolation</div><div class="vs-cell syndicate">✦ Built-in</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Workflow versioning + rollback</div><div class="vs-cell syndicate">✦ Semver</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Agent marketplace</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">DAG-based workflow definition</div><div class="vs-cell syndicate">✦ YAML DAG</div><div class="vs-cell"><span class="partial">⚡ Python code</span></div><div class="vs-cell"><span class="partial">⚡ Python code</span></div></div>
-      <div class="vs-row"><div class="vs-feat">Pre-built agents</div><div class="vs-cell syndicate">✦ 105 agents</div><div class="vs-cell"><span class="cross">✗</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">REST API + SDK</div><div class="vs-cell syndicate">✦ FastAPI</div><div class="vs-cell"><span class="partial">⚡ LangServe</span></div><div class="vs-cell"><span class="cross">✗</span></div></div>
-      <div class="vs-row"><div class="vs-feat">pip install ready</div><div class="vs-cell syndicate">✦ Yes</div><div class="vs-cell"><span class="check">✓</span></div><div class="vs-cell"><span class="check">✓</span></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- ── HOW IT WORKS ───────────────────────────────────────────── -->
-<section class="how-section" id="how">
-  <div class="container">
-    <div class="section-header fade-in">
-      <span class="section-tag">Architecture</span>
-      <h2 class="section-title">Five layers. Zero ambiguity.</h2>
-      <p class="section-sub">Every request flows through a deterministic pipeline. No LLM can hallucinate its way past the schema validation gate.</p>
-    </div>
-    <div class="steps fade-in">
-      <div class="step">
-        <div class="step-num">01</div>
-        <span class="step-icon">⬡</span>
-        <div class="step-title">Interface Layer</div>
-        <div class="step-desc">FastAPI with API key auth, rate limiting per-key, CORS from env. Every request validated before touching business logic.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <span class="step-icon">⋈</span>
-        <div class="step-title">Orchestration Layer</div>
-        <div class="step-desc">DAG executor reads YAML workflow, builds execution plan, dispatches Celery tasks. State machine: PENDING → ACTIVE → VERIFIED → COMMITTED.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <span class="step-icon">⚡</span>
-        <div class="step-title">Execution Layer</div>
-        <div class="step-desc">Celery workers call your LLM (Anthropic, OpenAI, Ollama). JSON enforced on every response. Retry with exponential backoff.</div>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <span class="step-icon">◈</span>
-        <div class="step-title">Validation Gate</div>
-        <div class="step-desc">Pydantic + JSON Schema + assertions on every output. Nothing advances the DAG on bad output. Period.</div>
+    <div class="vs-wrap rev">
+      <div class="vs-inner">
+        <div class="vs-hd">
+          <div class="vs-hc">Feature</div>
+          <div class="vs-hc hl">SYNDICATE AI</div>
+          <div class="vs-hc">LangGraph</div>
+          <div class="vs-hc">CrewAI</div>
+        </div>
+        <div class="vs-row"><div class="vs-f">Typed I/O agent contracts</div><div class="vs-c cy">&#10022; YAML schemas</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">Schema validation gate (hard block)</div><div class="vs-c cy">&#10022; Per-step</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">Real-time SSE streaming</div><div class="vs-c cy">&#10022; Built-in</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">Execution replay &amp; debug</div><div class="vs-c cy">&#10022; Full</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">5-layer pipeline with Memory Layer</div><div class="vs-c cy">&#10022; Yes</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">Agent hot-reload (&lt;1s)</div><div class="vs-c cy">&#10022; Yes</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">CLI (syndicate run / stream)</div><div class="vs-c cy">&#10022; Yes</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">Multi-tenant isolation</div><div class="vs-c cy">&#10022; Built-in</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">Workflow versioning + rollback</div><div class="vs-c cy">&#10022; Semver</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">105 pre-built typed agents</div><div class="vs-c cy">&#10022; Yes</div><div class="vs-c cn">&#10005;</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">DAG workflow definition</div><div class="vs-c cy">&#10022; YAML DAG</div><div class="vs-c ca">&#9651; Python code</div><div class="vs-c ca">&#9651; Python code</div></div>
+        <div class="vs-row"><div class="vs-f">REST API + Python SDK</div><div class="vs-c cy">&#10022; FastAPI</div><div class="vs-c ca">&#9651; LangServe</div><div class="vs-c cn">&#10005;</div></div>
+        <div class="vs-row"><div class="vs-f">pip install</div><div class="vs-c cy">&#10022; Yes</div><div class="vs-c" style="color:var(--green)">&#10003;</div><div class="vs-c" style="color:var(--green)">&#10003;</div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── FEATURES GRID ──────────────────────────────────────────── -->
-<section class="features-section" id="features-detail">
-  <div class="container">
-    <div class="section-header fade-in">
-      <span class="section-tag">Features</span>
-      <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+<!-- 5 LAYERS — FIX: All 5 shown -->
+<section class="section section-alt" id="layers">
+  <div class="wrap">
+    <div class="sh rev">
+      <span class="tag">Architecture</span>
+      <h2 class="htitle">Five layers. Zero ambiguity.</h2>
+      <p class="hsub">Every request flows through a deterministic pipeline. No LLM can hallucinate its way past the schema validation gate.</p>
     </div>
-    <div class="features-grid fade-in">
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(0,212,255,0.1)">📡</div>
-        <div class="feature-title">Real-Time Streaming</div>
-        <div class="feature-desc">Server-Sent Events for every state transition. Watch your DAG execute live — step dispatched, active, validated, committed. Connect from browser or SDK.</div>
-        <span class="feature-tag" style="background:rgba(0,212,255,0.1);color:var(--cyan)">SSE / Redis PubSub</span>
+    <div class="layers rev">
+      <div class="lcard">
+        <div class="lnum">01</div>
+        <div class="lion">&#11041;</div>
+        <div class="lname">Interface Layer</div>
+        <div class="ldesc">FastAPI with API key auth, per-key rate limiting, CORS from environment. Every request validated before reaching business logic.</div>
+        <span class="lbadge" style="background:rgba(0,229,255,.12);color:var(--cyan)">FastAPI &middot; slowapi</span>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(154,89,255,0.1)">↺</div>
-        <div class="feature-title">Execution Replay</div>
-        <div class="feature-desc">Replay any past execution step-by-step. Set breakpoints before named steps. Patch inputs. Mock outputs (skip LLM entirely). Compare two executions side-by-side.</div>
-        <span class="feature-tag" style="background:rgba(154,89,255,0.1);color:var(--purple)">Debug Mode</span>
+      <div class="lcard">
+        <div class="lnum">02</div>
+        <div class="lion">&#8904;</div>
+        <div class="lname">Orchestration Layer</div>
+        <div class="ldesc">DAG executor reads YAML workflow, builds execution plan, dispatches Celery tasks. State machine enforces PENDING &rarr; ACTIVE &rarr; VERIFIED &rarr; COMMITTED.</div>
+        <span class="lbadge" style="background:rgba(41,121,255,.12);color:var(--blue)">Celery &middot; Redis</span>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(26,111,255,0.1)">🔥</div>
-        <div class="feature-title">Agent Hot-Reload</div>
-        <div class="feature-desc">Edit a YAML contract and the change takes effect in under 1 second. Background watcher detects file changes. No server restart. No downtime.</div>
-        <span class="feature-tag" style="background:rgba(26,111,255,0.1);color:var(--blue)">Dev Experience</span>
+      <div class="lcard">
+        <div class="lnum">03</div>
+        <div class="lion">&#9889;</div>
+        <div class="lname">Execution Layer</div>
+        <div class="ldesc">Celery workers call your LLM (Anthropic, OpenAI, Ollama). JSON enforced on every response. Exponential backoff on failure. Escalation after max retries.</div>
+        <span class="lbadge" style="background:rgba(255,171,64,.12);color:var(--amber)">Pluggable LLM</span>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(0,232,122,0.1)">🏢</div>
-        <div class="feature-title">Multi-Tenant Isolation</div>
-        <div class="feature-desc">Org-scoped contexts, plan tiers (free/pro/business/enterprise), usage metering, Redis-prefixed data isolation. Org A cannot read Org B's data. Ever.</div>
-        <span class="feature-tag" style="background:rgba(0,232,122,0.1);color:var(--green)">Enterprise Ready</span>
+      <div class="lcard">
+        <div class="lnum">04</div>
+        <div class="lion">&#9672;</div>
+        <div class="lname">Validation Gate</div>
+        <div class="ldesc">Pydantic + JSON Schema + success assertions on every agent output. Nothing advances the DAG on bad output. This is what separates SYNDICATE AI from every other framework.</div>
+        <span class="lbadge" style="background:rgba(255,82,82,.12);color:var(--red)">Hard Gate</span>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(245,166,35,0.1)">📦</div>
-        <div class="feature-title">Workflow Versioning</div>
-        <div class="feature-desc">Semantic versioning (MAJOR.MINOR.PATCH) for all workflow DAGs. Snapshot history, diff between versions, rollback in one call. Breaking change auto-detection.</div>
-        <span class="feature-tag" style="background:rgba(245,166,35,0.1);color:var(--amber)">Semver</span>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(255,60,95,0.1)">⊕</div>
-        <div class="feature-title">Agent Marketplace</div>
-        <div class="feature-desc">Discover, install, and rate community agents. Official, verified, and community tiers. One command to install. Hot-reload picks it up automatically.</div>
-        <span class="feature-tag" style="background:rgba(255,60,95,0.1);color:var(--red)">Community</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── AGENTS SECTION ─────────────────────────────────────────── -->
-<section class="agents-section" id="agents">
-  <div class="container">
-    <div class="section-header fade-in">
-      <span class="section-tag">Agent Catalog</span>
-      <h2 class="section-title">105 agents. 12 divisions.</h2>
-      <p class="section-sub">Every agent is a typed YAML contract with input schema, output schema, retry strategy, and success assertions — not a markdown persona.</p>
-    </div>
-    <div class="divisions-grid fade-in">
-      <div class="division-card"><div class="division-icon">⚙️</div><div class="division-name">Engineering</div><div class="division-count">21 agents</div></div>
-      <div class="division-card"><div class="division-icon">📣</div><div class="division-name">Marketing</div><div class="division-count">13 agents</div></div>
-      <div class="division-card"><div class="division-icon">🎮</div><div class="division-name">GameDev</div><div class="division-count">10 agents</div></div>
-      <div class="division-card"><div class="division-icon">🧪</div><div class="division-name">Testing</div><div class="division-count">8 agents</div></div>
-      <div class="division-card"><div class="division-icon">💰</div><div class="division-name">Sales</div><div class="division-count">8 agents</div></div>
-      <div class="division-card"><div class="division-icon">🎨</div><div class="division-name">Design</div><div class="division-count">8 agents</div></div>
-      <div class="division-card"><div class="division-icon">📊</div><div class="division-name">Paid Media</div><div class="division-count">7 agents</div></div>
-      <div class="division-card"><div class="division-icon">🔬</div><div class="division-name">Specialized</div><div class="division-count">12 agents</div></div>
-      <div class="division-card"><div class="division-icon">📋</div><div class="division-name">PM</div><div class="division-count">6 agents</div></div>
-      <div class="division-card"><div class="division-icon">🛎️</div><div class="division-name">Support</div><div class="division-count">6 agents</div></div>
-      <div class="division-card"><div class="division-icon">📦</div><div class="division-name">Product</div><div class="division-count">5 agents</div></div>
-      <div class="division-card"><div class="division-icon">⬡</div><div class="division-name">Orchestration</div><div class="division-count">1 agent</div></div>
-    </div>
-  </div>
-</section>
-
-<!-- ── CODE SHOWCASE ──────────────────────────────────────────── -->
-<section class="code-section">
-  <div class="container">
-    <div class="section-header fade-in">
-      <span class="section-tag">Developer Experience</span>
-      <h2 class="section-title">Code that makes sense</h2>
-    </div>
-    <div class="code-showcase fade-in">
-      <div class="code-panel">
-        <div class="code-panel-title">Agent Contract (YAML)</div>
-<pre><span class="c"># agents/engineering/ui-engineer.yaml</span>
-<span class="k">id</span><span class="n">:</span> <span class="s">engineering.ui-engineer</span>
-<span class="k">name</span><span class="n">:</span> <span class="s">UI Engineer</span>
-<span class="k">version</span><span class="n">:</span> <span class="s">2.1.0</span>
-<span class="k">division</span><span class="n">:</span> <span class="s">engineering</span>
-
-<span class="k">input_schema</span><span class="n">:</span>
-  <span class="k">type</span><span class="n">:</span> <span class="s">object</span>
-  <span class="k">required</span><span class="n">:</span> <span class="n">[component_spec, tech_stack]</span>
-  <span class="k">properties</span><span class="n">:</span>
-    <span class="k">component_spec</span><span class="n">:</span>
-      <span class="k">type</span><span class="n">:</span> <span class="s">string</span>
-
-<span class="k">output_schema</span><span class="n">:</span>
-  <span class="k">type</span><span class="n">:</span> <span class="s">object</span>
-  <span class="k">required</span><span class="n">:</span> <span class="n">[component_code, tests, story]</span>
-
-<span class="k">failure</span><span class="n">:</span>
-  <span class="k">max_retries</span><span class="n">:</span> <span class="p">3</span>
-  <span class="k">retry_strategy</span><span class="n">:</span> <span class="s">exponential_backoff</span>
-
-<span class="k">success_metrics</span><span class="n">:</span>
-  <span class="k">assertions</span><span class="n">:</span>
-    <span class="n">- </span><span class="k">field</span><span class="n">:</span> <span class="s">data.component_code</span>
-      <span class="k">rule</span><span class="n">:</span> <span class="s">min_length:50</span></pre>
-      </div>
-      <div class="code-panel">
-        <div class="code-panel-title">Python SDK</div>
-<pre><span class="k">from</span> <span class="f">syndicate.sdk</span> <span class="k">import</span> <span class="n">SyndicateClient</span>
-
-<span class="c"># Type-safe client</span>
-<span class="n">client</span> <span class="n">=</span> <span class="f">SyndicateClient</span><span class="n">(</span>
-    <span class="k">api_key</span><span class="n">=</span><span class="s">"sk-your-key"</span><span class="n">,</span>
-<span class="n">)</span>
-
-<span class="c"># Execute and wait</span>
-<span class="n">result</span> <span class="n">=</span> <span class="n">client</span><span class="n">.</span><span class="f">run_and_wait</span><span class="n">(</span>
-    <span class="s">"startup-mvp"</span><span class="n">,</span>
-    <span class="k">context</span><span class="n">={</span><span class="s">"brief"</span><span class="n">:</span> <span class="s">"B2B SaaS"</span><span class="n">},</span>
-<span class="n">)</span>
-
-<span class="c"># Or stream in real-time</span>
-<span class="k">for</span> <span class="n">event</span> <span class="k">in</span> <span class="n">client</span><span class="n">.</span><span class="f">stream</span><span class="n">(</span>
-    <span class="n">result</span><span class="n">.</span><span class="n">execution_id</span>
-<span class="n">):</span>
-    <span class="k">if</span> <span class="n">event</span><span class="n">.</span><span class="n">type</span> <span class="n">==</span> <span class="s">"step.completed"</span><span class="n">:</span>
-        <span class="f">print</span><span class="n">(</span><span class="k">f</span><span class="s">"✓ {event.data['step_name']}"</span><span class="n">)</span>
-
-<span class="c"># CLI equivalent</span>
-<span class="c"># $ syndicate run startup-mvp \</span>
-<span class="c">#     --context '{"brief":"B2B"}' \</span>
-<span class="c">#     --wait</span></pre>
+      <div class="lcard">
+        <div class="lnum">05</div>
+        <div class="lion">&#128190;</div>
+        <div class="lname">Memory Layer</div>
+        <div class="ldesc">Redis hot context (sub-ms reads, TTL-based) for cross-step data flow. PostgreSQL WAL for durable audit trails. Step N reads Step 1&rsquo;s validated output automatically.</div>
+        <span class="lbadge" style="background:rgba(179,136,255,.12);color:var(--purple)">Redis &middot; PostgreSQL</span>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── PRICING ────────────────────────────────────────────────── -->
-<section class="pricing-section" id="pricing">
-  <div class="container">
-    <div class="section-header fade-in">
-      <span class="section-tag">Pricing</span>
-      <h2 class="section-title">Start free. Scale when ready.</h2>
-      <p class="section-sub">Self-host forever for free. Cloud pricing scales with your usage.</p>
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="wrap">
+    <div class="sh rev">
+      <span class="tag">Features</span>
+      <h2 class="htitle">Everything you need.<br>Nothing you don&rsquo;t.</h2>
     </div>
-    <div class="pricing-grid fade-in">
-      <div class="pricing-card">
-        <div class="plan-name">Self-Hosted</div>
-        <div class="plan-price"><sup>$</sup>0</div>
-        <div class="plan-desc">Open source · MIT License · Forever free</div>
-        <ul class="plan-features">
-          <li>All 105 agents</li>
-          <li>Unlimited executions</li>
-          <li>Docker Compose deploy</li>
-          <li>Full API access</li>
-          <li>Community support</li>
+    <div class="feats rev">
+      <div class="fcard" style="--al:var(--cyan)"><div class="fico" style="background:rgba(0,229,255,.1)">&#128225;</div><div class="fname">Real-Time Streaming</div><div class="fdesc">Server-Sent Events at every state transition. Watch your DAG execute live &mdash; step dispatched, active, validated, committed. No polling required. Connect from any browser or the Python SDK.</div><span class="ftag" style="background:rgba(0,229,255,.1);color:var(--cyan)">SSE &middot; Redis PubSub</span></div>
+      <div class="fcard" style="--al:var(--purple)"><div class="fico" style="background:rgba(179,136,255,.1)">&#8634;</div><div class="fname">Execution Replay</div><div class="fdesc">Replay any past execution step-by-step. Set breakpoints before named steps. Patch inputs. Mock outputs and skip LLM calls entirely. Compare two executions side-by-side with token diff.</div><span class="ftag" style="background:rgba(179,136,255,.1);color:var(--purple)">Debug Mode</span></div>
+      <div class="fcard" style="--al:var(--blue)"><div class="fico" style="background:rgba(41,121,255,.1)">&#128293;</div><div class="fname">Agent Hot-Reload</div><div class="fdesc">Edit a YAML contract and the change takes effect in under 1 second. Background file watcher detects changes. No server restart. No Docker rebuild. No downtime.</div><span class="ftag" style="background:rgba(41,121,255,.1);color:var(--blue)">DX</span></div>
+      <div class="fcard" style="--al:var(--green)"><div class="fico" style="background:rgba(0,230,118,.1)">&#127962;</div><div class="fname">Multi-Tenant Isolation</div><div class="fdesc">Org-scoped contexts, plan tiers, usage metering, Redis-prefixed data isolation. Every API key maps to an org. Org A cannot read, write, or enumerate Org B&rsquo;s data. Ever.</div><span class="ftag" style="background:rgba(0,230,118,.1);color:var(--green)">Enterprise</span></div>
+      <div class="fcard" style="--al:var(--amber)"><div class="fico" style="background:rgba(255,171,64,.1)">&#128230;</div><div class="fname">Workflow Versioning</div><div class="fdesc">Semantic versioning (MAJOR.MINOR.PATCH) for every workflow DAG. Snapshot history, diff between versions, one-call rollback. Breaking change auto-detected on step removal.</div><span class="ftag" style="background:rgba(255,171,64,.1);color:var(--amber)">Semver</span></div>
+      <div class="fcard" style="--al:var(--red)"><div class="fico" style="background:rgba(255,82,82,.1)">&#8853;</div><div class="fname">Agent Marketplace</div><div class="fdesc">Discover, install, and rate community agents. Official, verified, and community tiers. One CLI command to install. Hot-reload picks it up automatically.</div><span class="ftag" style="background:rgba(255,82,82,.1);color:var(--red)">Community</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENTS -->
+<section class="section section-alt" id="agents">
+  <div class="wrap">
+    <div class="sh rev">
+      <span class="tag">Agent Catalog</span>
+      <h2 class="htitle">105 agents. 12 divisions.</h2>
+      <p class="hsub">Every agent is a typed YAML contract with input schema, output schema, retry strategy, and success assertions &mdash; not a markdown persona file.</p>
+    </div>
+    <div class="divs rev">
+      <div class="dcard"><div class="dico">&#9881;&#65039;</div><div class="dname">Engineering</div><div class="dct">21 agents</div></div>
+      <div class="dcard"><div class="dico">&#128227;</div><div class="dname">Marketing</div><div class="dct">13 agents</div></div>
+      <div class="dcard"><div class="dico">&#128300;</div><div class="dname">Specialized</div><div class="dct">12 agents</div></div>
+      <div class="dcard"><div class="dico">&#127918;</div><div class="dname">GameDev</div><div class="dct">10 agents</div></div>
+      <div class="dcard"><div class="dico">&#129514;</div><div class="dname">Testing</div><div class="dct">8 agents</div></div>
+      <div class="dcard"><div class="dico">&#128176;</div><div class="dname">Sales</div><div class="dct">8 agents</div></div>
+      <div class="dcard"><div class="dico">&#127912;</div><div class="dname">Design</div><div class="dct">8 agents</div></div>
+      <div class="dcard"><div class="dico">&#128202;</div><div class="dname">Paid Media</div><div class="dct">7 agents</div></div>
+      <div class="dcard"><div class="dico">&#128203;</div><div class="dname">PM</div><div class="dct">6 agents</div></div>
+      <div class="dcard"><div class="dico">&#128718;</div><div class="dname">Support</div><div class="dct">6 agents</div></div>
+      <div class="dcard"><div class="dico">&#128230;</div><div class="dname">Product</div><div class="dct">5 agents</div></div>
+      <div class="dcard"><div class="dico">&#11041;</div><div class="dname">Orchestration</div><div class="dct">1 agent</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE -->
+<section class="section">
+  <div class="wrap">
+    <div class="sh rev">
+      <span class="tag">Developer Experience</span>
+      <h2 class="htitle">YAML contracts. Python SDK.</h2>
+      <p class="hsub">Agents defined in readable YAML. Executed via a type-safe Python SDK or the CLI. No boilerplate, no magic.</p>
+    </div>
+    <div class="code-split rev">
+      <div class="cpane">
+        <div class="cpane-hd">Agent Contract &mdash; YAML</div>
+        <pre><span class="cc"># agents/engineering/ui-engineer.yaml</span>
+<span class="ck">id</span><span class="cn">:</span> <span class="cs">engineering.ui-engineer</span>
+<span class="ck">version</span><span class="cn">:</span> <span class="cs">2.1.0</span>
+
+<span class="ck">input_schema</span><span class="cn">:</span>
+  <span class="ck">type</span><span class="cn">:</span> <span class="cs">object</span>
+  <span class="ck">required</span><span class="cn">:</span> <span class="cn">[component_spec, tech_stack]</span>
+
+<span class="ck">output_schema</span><span class="cn">:</span>
+  <span class="ck">type</span><span class="cn">:</span> <span class="cs">object</span>
+  <span class="ck">required</span><span class="cn">:</span> <span class="cn">[component_code, tests]</span>
+
+<span class="ck">failure</span><span class="cn">:</span>
+  <span class="ck">max_retries</span><span class="cn">:</span> <span class="cp">3</span>
+  <span class="ck">retry_strategy</span><span class="cn">:</span> <span class="cs">exponential_backoff</span>
+
+<span class="ck">success_metrics</span><span class="cn">:</span>
+  <span class="ck">assertions</span><span class="cn">:</span>
+    <span class="cn">- </span><span class="ck">field</span><span class="cn">:</span> <span class="cs">data.component_code</span>
+      <span class="ck">rule</span><span class="cn">:</span> <span class="cs">min_length:50</span></pre>
+      </div>
+      <div class="cpane">
+        <div class="cpane-hd">Python SDK</div>
+        <pre><span class="ck">from</span> <span class="cf">syndicate.sdk</span> <span class="ck">import</span> <span class="cn">SyndicateClient</span>
+
+<span class="cc"># Type-safe, connection-pooled client</span>
+<span class="cn">client</span> <span class="cn">=</span> <span class="cf">SyndicateClient</span><span class="cn">(</span>
+    <span class="ck">api_key</span><span class="cn">=</span><span class="cs">"sk-your-key"</span>
+<span class="cn">)</span>
+
+<span class="cc"># Execute and wait for result</span>
+<span class="cn">result</span> <span class="cn">=</span> <span class="cn">client</span><span class="cn">.</span><span class="cf">run_and_wait</span><span class="cn">(</span>
+    <span class="cs">"startup-mvp"</span><span class="cn">,</span>
+    <span class="ck">context</span><span class="cn">={</span><span class="cs">"brief"</span><span class="cn">:</span> <span class="cs">"B2B SaaS"</span><span class="cn">}</span>
+<span class="cn">)</span>
+
+<span class="cc"># Or stream live events</span>
+<span class="ck">for</span> <span class="cn">event</span> <span class="ck">in</span> <span class="cn">client</span><span class="cn">.</span><span class="cf">stream</span><span class="cn">(</span>
+    <span class="cn">result</span><span class="cn">.</span><span class="cn">execution_id</span><span class="cn">):</span>
+    <span class="ck">if</span> <span class="cn">event</span><span class="cn">.</span><span class="cn">type</span> <span class="cn">==</span> <span class="cs">"step.completed"</span><span class="cn">:</span>
+        <span class="cf">print</span><span class="cn">(</span><span class="cs">f"&checkmark; {event.data['step_name']}"</span><span class="cn">)</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING — FIX: Realistic self-hosted limits -->
+<section class="section section-alt" id="pricing">
+  <div class="wrap">
+    <div class="sh rev">
+      <span class="tag">Pricing</span>
+      <h2 class="htitle">Start free. Scale when ready.</h2>
+      <p class="hsub">Every plan includes the full platform. Self-host to keep platform costs at zero &mdash; you cover your own infrastructure.</p>
+    </div>
+    <div class="pgrid rev">
+
+      <div class="pcard">
+        <div class="pname">Self-Hosted</div>
+        <div class="ptag">You run the infrastructure</div>
+        <div class="pprice"><sup>$</sup>0</div>
+        <div class="pbill">Platform licence is free forever<br>Est. infrastructure cost: $20&ndash;80/mo on a cloud VM</div>
+        <ul class="pfeats">
+          <li>All 105 agents included</li>
+          <li>All platform features (streaming, replay, versioning)</li>
+          <li class="lim">Up to 3 concurrent executions per instance</li>
+          <li class="lim">~500 executions/mo on standard VM (2 vCPU, 4GB)</li>
+          <li class="lim">Community support via GitHub Issues only</li>
+          <li class="na">No managed DB, Redis, or backups included</li>
+          <li class="na">No uptime SLA or health monitoring</li>
         </ul>
-        <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-ghost" style="display:block;text-align:center;padding:10px">View on GitHub →</a>
+        <a href="https://github.com/NeoCodeSmith/syndicate-ai" target="_blank" rel="noopener" class="btn btn-ghost pcta">View on GitHub &rarr;</a>
       </div>
-      <div class="pricing-card featured" style="padding-top:56px">
-        <div class="plan-name">Pro</div>
-        <div class="plan-price"><sup>$</sup>99<span class="period">/mo</span></div>
-        <div class="plan-desc">Managed cloud · Zero ops</div>
-        <ul class="plan-features">
+
+      <div class="pcard feat">
+        <div class="fbanner">MOST POPULAR</div>
+        <div class="pname">Pro</div>
+        <div class="ptag">Managed cloud &middot; Zero ops</div>
+        <div class="pprice"><sup>$</sup>99<span class="per">/mo</span></div>
+        <div class="pbill">Billed monthly &middot; Cancel anytime<br>14-day free trial, no card required</div>
+        <ul class="pfeats">
           <li>5,000 executions/month</li>
+          <li>10 concurrent executions</li>
           <li>Real-time SSE streaming</li>
           <li>25 custom agents</li>
-          <li>Workflow versioning</li>
-          <li>Email support</li>
+          <li>Workflow versioning + rollback</li>
+          <li>Email support (48h response)</li>
         </ul>
-        <a href="#" class="btn-primary" style="display:block;text-align:center;padding:10px">Start Free Trial →</a>
+        <a href="#" class="btn btn-primary pcta">Start Free Trial &rarr;</a>
       </div>
-      <div class="pricing-card">
-        <div class="plan-name">Business</div>
-        <div class="plan-price"><sup>$</sup>499<span class="period">/mo</span></div>
-        <div class="plan-desc">Teams · Audit trails · SSO</div>
-        <ul class="plan-features">
+
+      <div class="pcard">
+        <div class="pname">Business</div>
+        <div class="ptag">Teams &middot; Audit trails &middot; SSO</div>
+        <div class="pprice"><sup>$</sup>499<span class="per">/mo</span></div>
+        <div class="pbill">Billed monthly &middot; Volume discounts available</div>
+        <ul class="pfeats">
           <li>50,000 executions/month</li>
+          <li>50 concurrent executions</li>
           <li>Multi-tenant isolation</li>
           <li>200 custom agents</li>
-          <li>Execution replay/debug</li>
-          <li>Priority support</li>
+          <li>Full marketplace access</li>
+          <li>Priority support (8h SLA)</li>
         </ul>
-        <a href="#" class="btn-ghost" style="display:block;text-align:center;padding:10px">Contact Sales →</a>
+        <a href="mailto:sales@syndicate.ai" class="btn btn-ghost pcta">Contact Sales &rarr;</a>
       </div>
-      <div class="pricing-card">
-        <div class="plan-name">Enterprise</div>
-        <div class="plan-price" style="font-size:28px">Custom</div>
-        <div class="plan-desc">VPC deploy · SLA · Dedicated</div>
-        <ul class="plan-features">
+
+      <div class="pcard">
+        <div class="pname">Enterprise</div>
+        <div class="ptag">VPC &middot; On-prem &middot; Dedicated</div>
+        <div class="pprice" style="font-size:28px;line-height:1.2">Custom</div>
+        <div class="pbill">Annual contracts &middot; Volume pricing</div>
+        <ul class="pfeats">
           <li>Unlimited executions</li>
-          <li>VPC / on-prem deploy</li>
+          <li>Unlimited concurrency</li>
+          <li>VPC or on-premises deploy</li>
           <li>Unlimited custom agents</li>
           <li>99.9% uptime SLA</li>
-          <li>Dedicated engineer</li>
+          <li>Dedicated solutions engineer</li>
         </ul>
-        <a href="mailto:enterprise@syndicate.ai" class="btn-ghost" style="display:block;text-align:center;padding:10px">Talk to Us →</a>
+        <a href="mailto:enterprise@syndicate.ai" class="btn btn-ghost pcta">Talk to Us &rarr;</a>
       </div>
+    </div>
+    <p class="pnote rev">
+      &#9651;&nbsp;Self-hosted capacity depends on your infrastructure. 500 executions/mo is a guideline for a standard VM &mdash; scale your hardware for more throughput.<br/>
+      &#9651; = available with caveats &nbsp;&nbsp; &mdash; = not included in this plan
+    </p>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section">
+  <div class="wrap">
+    <div class="sh rev">
+      <span class="tag">Community</span>
+      <h2 class="htitle">Built by engineers,<br>for engineers</h2>
+    </div>
+    <div class="tgrid rev">
+      <div class="tcard"><div class="tq">&ldquo;</div><p class="ttext">Finally an agent framework that doesn&rsquo;t let LLMs hallucinate their way through a pipeline. The schema validation gate is the feature every serious AI team has been waiting for.</p><div class="tauth"><div class="tav" style="background:rgba(0,229,255,.15);color:var(--cyan)">AK</div><div><div class="tname">Akash K.</div><div class="trole">Founder &middot; Kerala, India</div></div></div></div>
+      <div class="tcard"><div class="tq">&ldquo;</div><p class="ttext">The execution replay feature saved me hours of debugging. I stepped through a failed production workflow, patched the input at the failing step, and verified the fix without burning a single LLM token.</p><div class="tauth"><div class="tav" style="background:rgba(41,121,255,.15);color:var(--blue)">MR</div><div><div class="tname">Marcus R.</div><div class="trole">Senior ML Engineer &middot; Berlin</div></div></div></div>
+      <div class="tcard"><div class="tq">&ldquo;</div><p class="ttext">We replaced 3,000 lines of custom orchestration glue with SYNDICATE AI. Deployment time dropped from 2 hours to 15 minutes. YAML contracts are readable by every engineer on the team.</p><div class="tauth"><div class="tav" style="background:rgba(0,230,118,.15);color:var(--green)">SP</div><div><div class="tname">Sasha P.</div><div class="trole">CTO &middot; AI Startup &middot; Singapore</div></div></div></div>
     </div>
   </div>
 </section>
 
-<!-- ── TESTIMONIALS ───────────────────────────────────────────── -->
-<section class="testimonials-section">
-  <div class="container">
-    <div class="section-header fade-in">
-      <span class="section-tag">Community</span>
-      <h2 class="section-title">Built by engineers,<br>for engineers</h2>
-    </div>
-    <div class="testimonials-grid fade-in">
-      <div class="testimonial">
-        <p class="testimonial-text">Finally an agent framework that doesn't let LLMs hallucinate their way through a pipeline. The schema validation gate is the feature every serious AI team has been waiting for.</p>
-        <div class="testimonial-author">
-          <div class="author-avatar" style="background:rgba(0,212,255,0.15);color:var(--cyan)">AK</div>
-          <div>
-            <div class="author-name">Akash K.</div>
-            <div class="author-role">Founder, Akash Enterprises · Kerala, India</div>
-          </div>
-        </div>
-      </div>
-      <div class="testimonial">
-        <p class="testimonial-text">The execution replay feature saved me hours of debugging. I could step through a failed production workflow, patch the input, and verify the fix — without burning a single LLM token.</p>
-        <div class="testimonial-author">
-          <div class="author-avatar" style="background:rgba(26,111,255,0.15);color:var(--blue)">MR</div>
-          <div>
-            <div class="author-name">Marcus R.</div>
-            <div class="author-role">Senior ML Engineer · Berlin</div>
-          </div>
-        </div>
-      </div>
-      <div class="testimonial">
-        <p class="testimonial-text">We replaced 3,000 lines of custom orchestration code with SYNDICATE AI. Deployment went from 2 hours to 15 minutes. The YAML agent contracts are readable by everyone on the team.</p>
-        <div class="testimonial-author">
-          <div class="author-avatar" style="background:rgba(0,232,122,0.15);color:var(--green)">SP</div>
-          <div>
-            <div class="author-name">Sasha P.</div>
-            <div class="author-role">CTO · AI Startup · Singapore</div>
-          </div>
-        </div>
-      </div>
-    </div>
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-glow" aria-hidden="true"></div>
+  <div class="badge" style="margin-bottom:24px">Ready to ship deterministic AI?</div>
+  <h2 class="cta-h2">Build something<br><span class="grad">that actually works</span></h2>
+  <p class="cta-sub">Self-host in 10 minutes with Docker Compose. No vendor lock-in. No magic. A production-grade orchestration engine that does exactly what you tell it to.</p>
+  <div class="cta-acts">
+    <a href="https://github.com/NeoCodeSmith/syndicate-ai" target="_blank" rel="noopener" class="btn btn-cyan btn-xl">&#9733; Star on GitHub</a>
+    <a href="#pricing" class="btn btn-ghost btn-xl">View Pricing</a>
   </div>
+  <p class="cta-note">MIT License &middot; Open source &middot; No credit card required for self-hosting</p>
 </section>
 
-<!-- ── CTA ────────────────────────────────────────────────────── -->
-<section class="cta-section">
-  <div class="cta-glow"></div>
-  <div class="hero-badge" style="margin-bottom:24px">Ready to ship deterministic AI?</div>
-  <h2 class="cta-title">
-    Build something<br>
-    <span style="background:linear-gradient(135deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">that actually works</span>
-  </h2>
-  <p class="cta-sub">Self-host in 10 minutes with Docker Compose. No vendor lock-in. No magic. Just a production-grade orchestration engine that does what you tell it to.</p>
-  <div class="cta-actions">
-    <a href="https://github.com/NeoCodeSmith/syndicate-ai" class="btn-primary btn-lg">Star on GitHub →</a>
-    <a href="https://github.com/NeoCodeSmith/syndicate-ai#quick-start" class="btn-ghost btn-lg">Read the Docs</a>
-  </div>
-  <p class="cta-note">Open source · MIT License · No credit card required for self-hosting</p>
-</section>
-
-<!-- ── FOOTER ─────────────────────────────────────────────────── -->
 <footer>
-  <div class="footer-brand">
-    <span class="nav-brand">SYNDICATE<span style="color:var(--cyan)">.</span>AI</span>
-    <p>Deterministic multi-agent orchestration for engineers who ship. 105 typed agents. DAG execution. Real-time streaming. Built in public.</p>
-  </div>
-  <div class="footer-col">
-    <h4>Product</h4>
-    <ul>
-      <li><a href="#features">Features</a></li>
-      <li><a href="#agents">Agent Catalog</a></li>
-      <li><a href="#pricing">Pricing</a></li>
-      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/CHANGELOG.md">Changelog</a></li>
-    </ul>
-  </div>
-  <div class="footer-col">
-    <h4>Developers</h4>
-    <ul>
-      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai">GitHub</a></li>
-      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/README.md">Documentation</a></li>
-      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/docs/guides/writing-agents.md">Writing Agents</a></li>
-      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/docs/guides/building-workflows.md">Building Workflows</a></li>
-    </ul>
-  </div>
-  <div class="footer-col">
-    <h4>Company</h4>
-    <ul>
-      <li><a href="#">About</a></li>
-      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/SECURITY.md">Security</a></li>
-      <li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/LICENSE">MIT License</a></li>
-      <li><a href="mailto:hello@syndicate.ai">Contact</a></li>
-    </ul>
-  </div>
+  <div class="fab"><div class="wm">SYNDICATE<em>.</em>AI</div><p>Deterministic multi-agent orchestration for engineers who ship. 105 typed agents. 5-layer pipeline. Real-time streaming. Built in public.</p></div>
+  <div class="fc"><h4>Product</h4><ul><li><a href="#vs">Compare</a></li><li><a href="#layers">Architecture</a></li><li><a href="#features">Features</a></li><li><a href="#pricing">Pricing</a></li></ul></div>
+  <div class="fc"><h4>Developers</h4><ul><li><a href="https://github.com/NeoCodeSmith/syndicate-ai" target="_blank" rel="noopener">GitHub</a></li><li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/README.md" target="_blank" rel="noopener">Documentation</a></li><li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/docs/guides/writing-agents.md" target="_blank" rel="noopener">Writing Agents</a></li><li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/docs/guides/building-workflows.md" target="_blank" rel="noopener">Workflows</a></li></ul></div>
+  <div class="fc"><h4>Company</h4><ul><li><a href="#">About</a></li><li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a></li><li><a href="https://github.com/NeoCodeSmith/syndicate-ai/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li><li><a href="mailto:hello@syndicate.ai">Contact</a></li></ul></div>
 </footer>
-<div class="footer-bottom">
-  <span>© 2025 SYNDICATE AI · Built by NeoCodeSmith · MIT License</span>
-  <span style="color:var(--text-4)">v1.0.0 · 105 agents · 35 source files</span>
-</div>
+<div class="fbot"><span>&copy; 2025 SYNDICATE AI &middot; Built by NeoCodeSmith &middot; MIT License</span><span>v1.0.0 &middot; 105 agents &middot; 5 execution layers</span></div>
 
 <script>
-  // Custom cursor
-  const cursor = document.getElementById('cursor');
-  const ring = document.getElementById('cursor-ring');
-  document.addEventListener('mousemove', e => {
-    cursor.style.left = e.clientX + 'px';
-    cursor.style.top = e.clientY + 'px';
-    setTimeout(() => {
-      ring.style.left = e.clientX + 'px';
-      ring.style.top = e.clientY + 'px';
-    }, 80);
-  });
-
-  // Intersection observer for fade-in
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
-      }
-    });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-
-  // Animated counter
-  function animateCounter(el, target, suffix='') {
-    let current = 0;
-    const step = target / 60;
-    const timer = setInterval(() => {
-      current = Math.min(current + step, target);
-      el.textContent = Math.floor(current) + suffix;
-      if (current >= target) clearInterval(timer);
-    }, 16);
-  }
-
-  // Nav scroll effect
-  const nav = document.querySelector('nav');
-  window.addEventListener('scroll', () => {
-    nav.style.borderBottomColor = window.scrollY > 60
-      ? 'var(--border2)'
-      : 'var(--border)';
-  });
+const hamBtn=document.getElementById('hamBtn'),mobNav=document.getElementById('mobNav'),spans=hamBtn.querySelectorAll('span');
+hamBtn.addEventListener('click',()=>{const o=mobNav.classList.toggle('open');hamBtn.setAttribute('aria-expanded',o);if(o){spans[0].style.transform='rotate(45deg) translate(5px,5px)';spans[1].style.opacity='0';spans[2].style.transform='rotate(-45deg) translate(5px,-5px)'}else{spans.forEach(s=>{s.style.transform='';s.style.opacity=''})}});
+mobNav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{mobNav.classList.remove('open');hamBtn.setAttribute('aria-expanded','false');spans.forEach(s=>{s.style.transform='';s.style.opacity=''})}));
+const ro=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target)}}),{threshold:.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.rev').forEach(el=>ro.observe(el));
+document.getElementById('copyPip').addEventListener('click',async e=>{e.preventDefault();try{await navigator.clipboard.writeText('pip install syndicate-ai');const i=document.getElementById('copyIco');i.textContent='\u2713';i.style.color='#00e676';setTimeout(()=>{i.textContent='\u2856';i.style.color=''},2000)}catch{}});
+const nav=document.querySelector('nav');
+window.addEventListener('scroll',()=>{nav.style.borderBottomColor=window.scrollY>80?'#1e3a62':'#162a4a'},{passive:true});
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t){e.preventDefault();window.scrollTo({top:t.getBoundingClientRect().top+window.scrollY-68,behavior:'smooth'})}}));
 </script>
 </body>
 </html>
